@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SinistroManager</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F4F2EE;--sur:#FFFFFF;--brd:#DDD9D0;--brd2:#B8B2A7;
+  --tx:#1C1A17;--tx2:#5C5851;--tx3:#9C9790;
+  --ac:#1B3A5C;--acl:#E8EEF5;--acd:#0F2440;
+  --rd:#7A1F1F;--rdl:#FAEAEA;--rdb:#C84444;
+  --gn:#1A4A2E;--gnl:#E8F4EC;--gnb:#3A8A54;
+  --am:#5C3D0A;--aml:#FBF0DC;--amb:#C47D1A;
+  --sw:240px;--r:8px;--rs:5px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Lato',sans-serif;background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* LOGIN */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--ac)}
+.lcard{background:var(--sur);border-radius:12px;padding:52px 44px;width:400px;box-shadow:0 24px 64px rgba(0,0,0,.18)}
+.llogo{font-family:'Playfair Display',serif;font-size:28px;color:var(--ac);margin-bottom:2px}
+.lsub{font-size:11px;color:var(--tx3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:40px}
+.lcard label{display:block;font-size:11px;font-weight:700;color:var(--tx2);margin-bottom:5px;margin-top:18px;text-transform:uppercase;letter-spacing:.06em}
+.lcard input{width:100%;border:1px solid var(--brd);border-radius:var(--rs);padding:10px 14px;font-family:inherit;font-size:14px;color:var(--tx);background:#fff;outline:none;transition:border-color .2s}
+.lcard input:focus{border-color:var(--ac)}
+.lbtn{width:100%;margin-top:28px;padding:12px;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);font-family:'Lato',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:.04em;transition:background .2s}
+.lbtn:hover{background:var(--acd)}
+.lhint{margin-top:20px;font-size:11px;color:var(--tx3);text-align:center;line-height:2}
+.lerr{margin-top:10px;font-size:12px;color:var(--rd);text-align:center;display:none}
+
+/* APP */
+#app{display:none;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;width:var(--sw);height:100vh;background:var(--ac);display:flex;flex-direction:column;z-index:100}
+.sb-brand{padding:28px 22px 22px;border-bottom:1px solid rgba(255,255,255,.1)}
+.sb-brand-name{font-family:'Playfair Display',serif;font-size:22px;color:#fff}
+.sb-brand-tag{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.12em;margin-top:3px}
+.sb-nav{flex:1;padding:12px 10px;overflow-y:auto}
+.ngrp{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.4);padding:14px 12px 5px}
+.ni{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--rs);cursor:pointer;color:rgba(255,255,255,.7);font-size:13px;transition:all .15s;margin-bottom:2px}
+.ni:hover{background:rgba(255,255,255,.08);color:#fff}
+.ni.active{background:rgba(255,255,255,.15);color:#fff;font-weight:700}
+.ni svg{width:16px;height:16px;flex-shrink:0;opacity:.8}
+.sb-user{padding:14px 18px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:10px}
+.uav{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.2);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.uname{font-size:12px;font-weight:700;color:#fff}
+.urole{font-size:11px;color:rgba(255,255,255,.5)}
+.lout{margin-left:auto;background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:11px;padding:4px 8px;border-radius:4px}
+.lout:hover{color:#fff}
+
+/* MAIN */
+.main{margin-left:var(--sw);min-height:100vh}
+.topbar{position:sticky;top:0;background:rgba(244,242,238,.95);backdrop-filter:blur(8px);border-bottom:1px solid var(--brd);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;z-index:50}
+.topbar-title{font-family:'Playfair Display',serif;font-size:18px;color:var(--tx)}
+.tact{display:flex;gap:8px}
+.content{padding:24px 28px}
+.section{display:none}
+.section.active{display:block}
+
+/* BOTTONI */
+.btn{padding:7px 16px;border-radius:var(--rs);font-family:'Lato',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:1px solid var(--brd);background:var(--sur);color:var(--tx2);transition:all .15s;letter-spacing:.02em}
+.btn:hover{border-color:var(--brd2);color:var(--tx)}
+.btn-p{background:var(--ac);border-color:var(--ac);color:#fff}
+.btn-p:hover{background:var(--acd)}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-rd{background:var(--rd);border-color:var(--rd);color:#fff}
+
+/* METRICHE */
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.g3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:24px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mc{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:16px 18px}
+.ml{font-size:10px;font-weight:700;color:var(--tx3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px}
+.mv{font-size:26px;font-weight:300;font-family:'Playfair Display',serif;color:var(--tx)}
+.md{font-size:11px;margin-top:3px;color:var(--tx3)}
+.card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.ct{font-size:13px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;text-transform:uppercase;letter-spacing:.04em;color:var(--tx2)}
+
+/* TABELLA */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:8px 12px;border-bottom:1px solid var(--brd)}
+td{padding:10px 12px;border-bottom:1px solid var(--brd);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg)}
+tbody tr{cursor:pointer}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em}
+.bg{background:var(--gnl);color:var(--gn)}
+.ba{background:var(--aml);color:var(--am)}
+.bb{background:var(--acl);color:var(--ac)}
+.br{background:var(--rdl);color:var(--rd)}
+.bgr{background:var(--bg);color:var(--tx2);border:1px solid var(--brd)}
+
+/* FORM */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+.fg.third{grid-column:span 1}
+.flbl{font-size:11px;font-weight:700;color:var(--tx2);text-transform:uppercase;letter-spacing:.06em}
+.fi,.fsel,.fta{border:1px solid var(--brd);border-radius:var(--rs);padding:8px 12px;font-family:'Lato',sans-serif;font-size:13px;color:var(--tx);background:#fff;outline:none;transition:border-color .2s;width:100%}
+.fi:focus,.fsel:focus,.fta:focus{border-color:var(--ac)}
+.fta{resize:vertical;min-height:70px}
+
+/* MODAL */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-ov.open{display:flex}
+.modal{background:var(--sur);border-radius:12px;width:680px;max-width:96vw;max-height:92vh;overflow-y:auto}
+.modal-lg{width:860px}
+.mhdr{padding:20px 24px 16px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.mtitle{font-family:'Playfair Display',serif;font-size:18px;color:var(--tx)}
+.mclose{background:none;border:none;font-size:22px;color:var(--tx3);cursor:pointer;line-height:1}
+.mclose:hover{color:var(--tx)}
+.mbody{padding:20px 24px}
+.mfoot{padding:14px 24px;border-top:1px solid var(--brd);display:flex;justify-content:flex-end;gap:8px}
+
+/* NOTIFICHE */
+.notif{border-radius:var(--rs);padding:10px 14px;font-size:12px;margin-bottom:12px;display:flex;align-items:flex-start;gap:8px;line-height:1.5}
+.n-warn{background:var(--aml);border:1px solid var(--amb);color:var(--am)}
+.n-danger{background:var(--rdl);border:1px solid var(--rdb);color:var(--rd)}
+.n-ok{background:var(--gnl);border:1px solid var(--gnb);color:var(--gn)}
+.n-info{background:var(--acl);border:1px solid var(--ac);color:var(--ac)}
+.n-conflict{background:#FFF0F0;border:2px solid var(--rdb);color:var(--rd);border-radius:6px;padding:12px 16px}
+
+/* FASI PRATICA */
+.fasi-bar{display:flex;gap:0;margin-bottom:24px;border-radius:var(--r);overflow:hidden;border:1px solid var(--brd)}
+.fase{flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;transition:all .15s;border-right:1px solid var(--brd);color:var(--tx3);background:var(--sur)}
+.fase:last-child{border-right:none}
+.fase.done{background:var(--gnl);color:var(--gn)}
+.fase.active{background:var(--ac);color:#fff}
+.fase.pending{background:var(--sur);color:var(--tx3)}
+.fase-num{display:block;font-size:18px;font-family:'Playfair Display',serif;font-weight:400;margin-bottom:2px}
+
+/* PRATICA CARD */
+.pratica-card{background:var(--sur);border:1px solid var(--brd);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;cursor:pointer;transition:all .2s;display:grid;grid-template-columns:auto 1fr auto auto;align-items:center;gap:16px}
+.pratica-card:hover{border-color:var(--ac);box-shadow:0 2px 12px rgba(27,58,92,.08)}
+.pratica-card.conflict-flag{border-color:var(--rdb);border-width:2px}
+.pc-num{font-family:'Playfair Display',serif;font-size:20px;color:var(--ac);min-width:80px}
+.pc-info{min-width:0}
+.pc-nome{font-size:14px;font-weight:700;color:var(--tx);margin-bottom:2px}
+.pc-det{font-size:12px;color:var(--tx3)}
+.pc-fase{text-align:center}
+.pc-stato{text-align:right}
+
+/* CONFLITTO */
+.conflict-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:700;background:var(--rdl);color:var(--rd);border:1px solid var(--rdb)}
+
+/* RICERCA CONFLITTI */
+.conflict-result{background:var(--rdl);border:1px solid var(--rdb);border-radius:var(--rs);padding:10px 14px;margin-top:6px;font-size:12px;color:var(--rd)}
+.conflict-result-ok{background:var(--gnl);border:1px solid var(--gnb);border-radius:var(--rs);padding:10px 14px;margin-top:6px;font-size:12px;color:var(--gn)}
+
+/* TIMELINE EVENTI */
+.timeline{border-left:2px solid var(--brd);padding-left:20px;margin-left:8px}
+.tl-item{position:relative;margin-bottom:18px}
+.tl-item::before{content:'';position:absolute;left:-27px;top:4px;width:10px;height:10px;border-radius:50%;background:var(--ac);border:2px solid var(--sur)}
+.tl-data{font-size:11px;color:var(--tx3);margin-bottom:2px;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+.tl-titolo{font-size:13px;font-weight:700;color:var(--tx);margin-bottom:2px}
+.tl-desc{font-size:12px;color:var(--tx2)}
+
+/* STEP INDICATOR */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:20px}
+.step{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--tx3)}
+.step.done{color:var(--gn)}
+.step.active{color:var(--ac)}
+.step-circle{width:24px;height:24px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0}
+.step.done .step-circle{background:var(--gn);border-color:var(--gn);color:#fff}
+.step.active .step-circle{background:var(--ac);border-color:var(--ac);color:#fff}
+.step-line{flex:1;height:2px;background:var(--brd);margin:0 6px}
+.step-line.done{background:var(--gn)}
+
+/* SPINNER */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:24px;right:24px;background:var(--tx);color:#fff;padding:10px 18px;border-radius:var(--rs);font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all .25s;pointer-events:none;font-weight:700}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.ok{background:var(--gn)}
+.toast.err{background:var(--rd)}
+
+/* DOCUMENTI */
+.doc-tabs{display:flex;gap:0;border-bottom:2px solid var(--brd);margin-bottom:16px;overflow-x:auto}
+.doc-tab{padding:8px 16px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;color:var(--tx3);border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .15s}
+.doc-tab:hover{color:var(--tx)}
+.doc-tab.active{color:var(--ac);border-bottom-color:var(--ac)}
+.doc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:14px}
+.doc-card{border:1px solid var(--brd);border-radius:var(--rs);padding:12px;cursor:pointer;transition:all .15s;position:relative}
+.doc-card:hover{border-color:var(--ac)}
+.doc-card.uploaded{background:var(--acl);border-color:var(--ac)}
+.doc-card.annotated{background:var(--bg)}
+.doc-icon{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:8px;font-size:18px}
+.doc-icon.pdf{background:#FCEAEA;color:#8B2A2A}
+.doc-icon.img{background:#EAF4EA;color:#1A4A2E}
+.doc-icon.doc{background:#EAF1FB;color:#1B3A5C}
+.doc-icon.note{background:#FBF0DC;color:#5C3D0A}
+.doc-nome{font-size:12px;font-weight:700;color:var(--tx);margin-bottom:2px;word-break:break-word}
+.doc-meta{font-size:10px;color:var(--tx3)}
+.doc-del{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--tx3);cursor:pointer;font-size:14px;opacity:0;transition:opacity .15s}
+.doc-card:hover .doc-del{opacity:1}
+.doc-del:hover{color:var(--rd)}
+.upload-area{border:2px dashed var(--brd);border-radius:var(--rs);padding:20px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.upload-area:hover{border-color:var(--ac);background:var(--acl)}
+.upload-area input{display:none}
+.adm{display:none}
+/* AI LETTURA */
+.ai-loading{background:var(--acl);border:1px solid var(--ac);color:var(--ac);display:flex;align-items:center;gap:10px}
+.ai-ok{background:var(--gnl);border:1px solid var(--gnb);color:var(--gn)}
+.ai-err{background:var(--rdl);border:1px solid var(--rdb);color:var(--rd)}
+.ai-field-nuovo{background:var(--gnl);border-radius:3px;padding:1px 4px;font-size:11px;color:var(--gn);font-weight:700;margin-left:4px}
+.sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:10px 0 6px;border-bottom:1px solid var(--brd);margin-bottom:10px;grid-column:1/-1}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="lcard">
+    <div class="llogo">SinistroManager</div>
+    <div class="lsub">Gestione Pratiche Infortunistica</div>
+    <label>Email</label><input type="email" id="l-email" placeholder="nome@studio.it">
+    <label>Password</label><input type="password" id="l-pwd" placeholder="••••••••">
+    <button class="lbtn" id="l-btn" onclick="doLogin()">Accedi</button>
+    <div class="lerr" id="lerr">Email o password non corrette</div>
+    <div class="lhint">Admin: admin@studio.it / admin123<br>Collaboratore: collab@studio.it / collab123</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <div class="sb-brand-name">SinistroManager</div>
+      <div class="sb-brand-tag">Infortunistica Stradale</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="ngrp">Pratiche</div>
+      <div class="ni active" onclick="goTo('dashboard')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>Dashboard
+      </div>
+      <div class="ni" onclick="goTo('pratiche')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10v12H3zM6 5h4M6 8h4M6 11h2"/></svg>Tutte le pratiche
+      </div>
+      <div class="ni" onclick="goTo('nuova')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6.5"/><path d="M8 5v6M5 8h6"/></svg>Nuova pratica
+      </div>
+      <div class="ngrp adm">Amministrazione</div>
+      <div class="ni adm" onclick="goTo('conflitti')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2L2 14h12L8 2z"/><path d="M8 6v4M8 11v1"/></svg>Controllo conflitti
+      </div>
+      <div class="ni adm" onclick="goTo('report')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L5 8L8 10L11 5L14 7"/><path d="M2 14h12"/></svg>Report studio
+      </div>
+    </nav>
+    <div class="sb-user">
+      <div class="uav" id="u-ini">—</div>
+      <div><div class="uname" id="u-nome">—</div><div class="urole" id="u-ruolo">—</div></div>
+      <button class="lout" onclick="doLogout()">Esci</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div class="tact" id="page-act"></div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="section active" id="sec-dashboard">
+        <div class="g4">
+          <div class="mc"><div class="ml">Pratiche attive</div><div class="mv" id="d-attive">—</div><div class="md">in gestione</div></div>
+          <div class="mc"><div class="ml">Da completare</div><div class="mv" id="d-pending">—</div><div class="md">azioni richieste</div></div>
+          <div class="mc"><div class="ml">Conflitti rilevati</div><div class="mv" id="d-conflitti" style="color:var(--rd)">—</div><div class="md">soggetti doppi</div></div>
+          <div class="mc adm"><div class="ml">Chiuse (anno)</div><div class="mv" id="d-chiuse">—</div><div class="md">pratiche liquidate</div></div>
+        </div>
+        <div id="dash-conflict-alert"></div>
+        <div class="g2">
+          <div>
+            <div class="card">
+              <div class="ct">Ultime pratiche</div>
+              <div id="dash-pratiche-list"><div style="font-size:12px;color:var(--tx3);padding:16px 0;text-align:center">Nessuna pratica</div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="ct">Azioni in scadenza</div>
+              <div id="dash-scadenze"><div style="font-size:12px;color:var(--tx3);padding:16px 0;text-align:center">Nessuna scadenza</div></div>
+            </div>
+            <div class="card adm">
+              <div class="ct">Distribuzione per fase</div>
+              <div id="dash-fasi"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TUTTE LE PRATICHE -->
+      <div class="section" id="sec-pratiche">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <input type="text" class="fi" id="search-pratiche" placeholder="Cerca per nome, targa, numero pratica..." style="flex:1;min-width:200px" oninput="filtraPratiche()">
+          <select class="fsel" id="filter-fase" onchange="filtraPratiche()" style="width:auto">
+            <option value="">Tutte le fasi</option>
+            <option value="apertura">Apertura</option>
+            <option value="cid">CID / Documenti</option>
+            <option value="perizia">Perizia</option>
+            <option value="medico">Medico legale</option>
+            <option value="offerta">Offerta</option>
+            <option value="chiusa">Chiusa</option>
+          </select>
+          <select class="fsel" id="filter-ruolo" onchange="filtraPratiche()" style="width:auto">
+            <option value="">Tutti i ruoli</option>
+            <option value="danneggiato">Danneggiato</option>
+            <option value="responsabile">Responsabile</option>
+          </select>
+        </div>
+        <div id="lista-pratiche"></div>
+      </div>
+
+      <!-- NUOVA PRATICA -->
+      <div class="section" id="sec-nuova">
+        <div class="card">
+          <div class="ct">Dati sinistro</div>
+          <div class="fgrid">
+            <div class="fg"><label class="flbl">Data sinistro *</label><input type="date" class="fi" id="n-data"></div>
+            <div class="fg"><label class="flbl">Ora (approssimativa)</label><input type="time" class="fi" id="n-ora"></div>
+            <div class="fg full"><label class="flbl">Luogo sinistro *</label><input type="text" class="fi" id="n-luogo" placeholder="Via Roma 1, Milano"></div>
+            <div class="fg"><label class="flbl">Tipo sinistro</label>
+              <select class="fsel" id="n-tipo">
+                <option value="frontale">Frontale</option>
+                <option value="tamponamento">Tamponamento</option>
+                <option value="laterale">Laterale</option>
+                <option value="rotatoria">Rotatoria</option>
+                <option value="pedone">Investimento pedone</option>
+                <option value="fuga">Pirata della strada</option>
+                <option value="altro">Altro</option>
+              </select>
+            </div>
+            <div class="fg"><label class="flbl">Forze dell'ordine</label>
+              <select class="fsel" id="n-forze">
+                <option value="no">Non intervenute</option>
+                <option value="polizia">Polizia Municipale</option>
+                <option value="carabinieri">Carabinieri</option>
+                <option value="polstrada">Polizia Stradale</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ct">Nostro assistito</div>
+          <div id="assistito-conflict-check"></div>
+          <div class="fgrid">
+            <div class="fg"><label class="flbl">Nome *</label><input type="text" class="fi" id="n-nome" placeholder="Nome" oninput="cercaConflitti('assistito')"></div>
+            <div class="fg"><label class="flbl">Cognome *</label><input type="text" class="fi" id="n-cognome" placeholder="Cognome" oninput="cercaConflitti('assistito')"></div>
+            <div class="fg"><label class="flbl">Codice fiscale</label><input type="text" class="fi" id="n-cf" placeholder="RSSMRA80A01H501U" oninput="cercaConflitti('cf')" style="text-transform:uppercase"></div>
+            <div class="fg"><label class="flbl">Telefono</label><input type="tel" class="fi" id="n-tel" placeholder="+39 ..."></div>
+            <div class="fg"><label class="flbl">Email</label><input type="email" class="fi" id="n-email"></div>
+            <div class="fg"><label class="flbl">Ruolo nel sinistro *</label>
+              <select class="fsel" id="n-ruolo">
+                <option value="danneggiato">Danneggiato / Vittima</option>
+                <option value="responsabile">Responsabile / Conducente</option>
+                <option value="terzo">Terzo trasportato</option>
+                <option value="pedone">Pedone investito</option>
+              </select>
+            </div>
+            <div class="fg"><label class="flbl">Targa veicolo assistito</label><input type="text" class="fi" id="n-targa" placeholder="AB123CD" style="text-transform:uppercase" oninput="cercaConflitti('targa')"></div>
+            <div class="fg"><label class="flbl">Compagnia assicurativa assistito</label><input type="text" class="fi" id="n-ass-ass"></div>
+            <div class="fg"><label class="flbl">N° polizza assistito</label><input type="text" class="fi" id="n-polizza"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ct">Controparte</div>
+          <div id="controparte-conflict-check"></div>
+          <div class="fgrid">
+            <div class="fg"><label class="flbl">Nome controparte</label><input type="text" class="fi" id="n-cp-nome" placeholder="Nome" oninput="cercaConflitti('controparte')"></div>
+            <div class="fg"><label class="flbl">Cognome controparte</label><input type="text" class="fi" id="n-cp-cognome" placeholder="Cognome" oninput="cercaConflitti('controparte')"></div>
+            <div class="fg"><label class="flbl">Targa controparte</label><input type="text" class="fi" id="n-cp-targa" placeholder="AB123CD" style="text-transform:uppercase" oninput="cercaConflitti('targa-cp')"></div>
+            <div class="fg"><label class="flbl">Compagnia assicurativa controparte</label><input type="text" class="fi" id="n-cp-ass"></div>
+            <div class="fg full"><label class="flbl">N° sinistro assicurazione controparte</label><input type="text" class="fi" id="n-cp-sinistro"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ct">Danni e note iniziali</div>
+          <div class="fgrid">
+            <div class="fg">
+              <label class="flbl">Tipo danno</label>
+              <div style="display:flex;gap:12px;margin-top:4px">
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="n-danno-fisico"> Fisico / Lesioni</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="n-danno-materiale"> Materiale / Veicolo</label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="n-danno-morale"> Morale</label>
+              </div>
+            </div>
+            <div class="fg"><label class="flbl">Collaboratore assegnato</label>
+              <select class="fsel" id="n-collab">
+                <option value="">— Nessuno (gestisco io) —</option>
+              </select>
+            </div>
+            <div class="fg full"><label class="flbl">Note iniziali</label><textarea class="fta" id="n-note" placeholder="Descrizione sinistro, prime impressioni, urgenze..."></textarea></div>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+          <button class="btn" onclick="goTo('pratiche')">Annulla</button>
+          <button class="btn btn-p" id="btn-salva-pratica" onclick="salvaPratica()">Apri pratica</button>
+        </div>
+      </div>
+
+      <!-- CONTROLLO CONFLITTI (admin) -->
+      <div class="section" id="sec-conflitti">
+        <div class="card">
+          <div class="ct">Ricerca conflitti manuale</div>
+          <div style="display:flex;gap:10px;margin-bottom:16px">
+            <input type="text" class="fi" id="conflict-search" placeholder="Nome, cognome, codice fiscale o targa..." style="flex:1" oninput="ricercaConflittiManuale()">
+          </div>
+          <div id="conflict-results"><div style="font-size:12px;color:var(--tx3);text-align:center;padding:20px">Inizia a digitare per cercare</div></div>
+        </div>
+        <div class="card">
+          <div class="ct">Tutti i conflitti rilevati nel database</div>
+          <div id="tutti-conflitti"></div>
+        </div>
+      </div>
+
+      <!-- REPORT (admin) -->
+      <div class="section" id="sec-report">
+        <div class="g3">
+          <div class="mc"><div class="ml">Pratiche totali</div><div class="mv" id="r-tot">—</div></div>
+          <div class="mc"><div class="ml">Liquidate (anno)</div><div class="mv" id="r-liq">—</div></div>
+          <div class="mc"><div class="ml">Durata media</div><div class="mv" id="r-durata">—</div><div class="md">giorni dalla apertura</div></div>
+        </div>
+        <div class="g2">
+          <div class="card"><div class="ct">Pratiche per fase</div><div id="report-fasi"></div></div>
+          <div class="card"><div class="ct">Pratiche per tipo danno</div><div id="report-danni"></div></div>
+        </div>
+      </div>
+
+      <!-- DETTAGLIO PRATICA -->
+      <div class="section" id="sec-dettaglio">
+        <div id="det-conflict-banner"></div>
+        <div style="display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;align-items:flex-start">
+          <div style="flex:1;min-width:200px">
+            <div style="font-family:'Playfair Display',serif;font-size:24px;color:var(--ac)" id="det-numero">—</div>
+            <div style="font-size:14px;font-weight:700;color:var(--tx);margin-top:2px" id="det-nome">—</div>
+            <div style="font-size:12px;color:var(--tx3);margin-top:2px" id="det-info">—</div>
+          </div>
+          <div id="det-badges" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"></div>
+        </div>
+
+        <!-- Step bar fasi -->
+        <div class="steps" id="det-steps"></div>
+
+        <div class="g2">
+          <!-- Colonna sinistra: dati pratica + azioni fase corrente -->
+          <div>
+            <div class="card" id="det-fase-card">
+              <div class="ct" id="det-fase-title">Fase corrente</div>
+              <div id="det-fase-content"></div>
+            </div>
+            <div class="card">
+              <div class="ct">Documenti pratica
+                <button class="btn btn-sm btn-p" onclick="openModal('m-documento')">+ Aggiungi</button>
+              </div>
+              <div class="doc-tabs" id="doc-tabs"></div>
+              <div id="doc-contenuto"></div>
+            </div>
+            <div class="card">
+              <div class="ct">Corrispondenza assicurazione</div>
+              <div id="det-corrispondenza"></div>
+              <button class="btn btn-sm" style="margin-top:10px" onclick="openModal('m-lettera')">+ Aggiungi lettera</button>
+            </div>
+          </div>
+          <!-- Colonna destra: timeline + dati anagrafici -->
+          <div>
+            <div class="card">
+              <div class="ct">Dati pratica</div>
+              <div id="det-dati"></div>
+            </div>
+            <div class="card">
+              <div class="ct">Cronologia eventi</div>
+              <div class="timeline" id="det-timeline"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DOCUMENTO -->
+<div class="modal-ov" id="m-documento">
+  <div class="modal modal-lg">
+    <div class="mhdr"><div class="mtitle">Aggiungi documento</div><button class="mclose" onclick="closeModal('m-documento')">×</button></div>
+    <div class="mbody">
+      <div class="fgrid">
+
+        <div class="fg full">
+          <label class="flbl">Tipo documento *</label>
+          <select class="fsel" id="doc-tipo" onchange="aggiornaTipoDoc()">
+            <optgroup label="Documentazione sinistro">
+              <option value="cid">CID — Constatazione amichevole</option>
+              <option value="verbale">Verbale forze dell'ordine</option>
+              <option value="foto">Foto (sinistro / danni / lesioni)</option>
+            </optgroup>
+            <optgroup label="Documentazione medica">
+              <option value="ps">Certificato Pronto Soccorso</option>
+              <option value="rx">Radiografia (Rx)</option>
+              <option value="tac">TAC</option>
+              <option value="rmn">RMN / Risonanza magnetica</option>
+              <option value="eco">Ecografia</option>
+              <option value="visita">Visita specialistica</option>
+              <option value="referto">Referto medico generico</option>
+              <option value="ml">Relazione medico legale</option>
+            </optgroup>
+            <optgroup label="Documentazione legale / assicurativa">
+              <option value="perizia">Perizia / Relazione perito</option>
+              <option value="lettera">Lettera assicurazione</option>
+              <option value="altro">Altro documento</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <!-- CAMPI MEDICI (visibili solo per doc medici) -->
+        <div id="campi-medici" style="display:none;grid-column:1/-1">
+          <div style="background:var(--acl);border-radius:var(--rs);padding:14px 16px;margin-bottom:14px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--ac);margin-bottom:12px">Dati struttura sanitaria</div>
+            <div class="fgrid">
+              <div class="fg">
+                <label class="flbl">Struttura sanitaria</label>
+                <input type="text" class="fi" id="doc-struttura" placeholder="es. Ospedale San Camillo, Roma">
+              </div>
+              <div class="fg">
+                <label class="flbl">Reparto / Unità</label>
+                <input type="text" class="fi" id="doc-reparto" placeholder="es. Pronto Soccorso, Radiologia, Ortopedia">
+              </div>
+              <div class="fg">
+                <label class="flbl">Medico che ha eseguito</label>
+                <input type="text" class="fi" id="doc-medico-nome" placeholder="Dr. Nome Cognome">
+              </div>
+              <div class="fg">
+                <label class="flbl">Specializzazione</label>
+                <input type="text" class="fi" id="doc-specializ" placeholder="es. Ortopedico, Radiologo, Neurologo">
+              </div>
+              <div class="fg">
+                <label class="flbl">Parte del corpo</label>
+                <select class="fsel" id="doc-parte">
+                  <option value="">— Seleziona —</option>
+                  <option>Colonna cervicale</option>
+                  <option>Colonna lombare</option>
+                  <option>Colonna dorsale</option>
+                  <option>Spalla destra</option>
+                  <option>Spalla sinistra</option>
+                  <option>Ginocchio destro</option>
+                  <option>Ginocchio sinistro</option>
+                  <option>Testa / Cranio</option>
+                  <option>Costole / Torace</option>
+                  <option>Anca destra</option>
+                  <option>Anca sinistra</option>
+                  <option>Polso destro</option>
+                  <option>Polso sinistro</option>
+                  <option>Caviglia destra</option>
+                  <option>Caviglia sinistra</option>
+                  <option>Tutto il corpo</option>
+                  <option>Altro</option>
+                </select>
+              </div>
+              <div class="fg">
+                <label class="flbl">Esito / Diagnosi sintetica</label>
+                <input type="text" class="fi" id="doc-esito" placeholder="es. Ernia C5-C6, Frattura costola, Negativo">
+              </div>
+              <div class="fg">
+                <label class="flbl">Giorni prognosi</label>
+                <input type="number" class="fi" id="doc-prognosi" min="0" placeholder="es. 30">
+              </div>
+              <div class="fg">
+                <label class="flbl">N° cartella clinica / referto</label>
+                <input type="text" class="fi" id="doc-num-referto" placeholder="es. RC-2026-1234">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- CARICA FILE + AI -->
+        <div class="fg full">
+          <label class="flbl">Carica file — l'AI estrae i dati automaticamente</label>
+          <div class="upload-area" id="upload-area-doc" onclick="document.getElementById('doc-file').click()"
+            ondragover="event.preventDefault();this.style.borderColor='var(--ac)'"
+            ondragleave="this.style.borderColor=''"
+            ondrop="gestisciDrop(event)">
+            <input type="file" id="doc-file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" onchange="caricaEAnalizza(this)">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="display:block;margin:0 auto 8px;opacity:.4"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M12 18v-6M9 15l3 3 3-3"/></svg>
+            <div style="font-size:12px;color:var(--tx3)" id="doc-file-label">Clicca per scegliere o trascina il documento qui</div>
+            <div style="font-size:11px;color:var(--tx3);margin-top:4px">PDF, JPG, PNG — l'AI legge e compila i campi automaticamente</div>
+          </div>
+          <!-- STATO AI -->
+          <div id="ai-stato" style="display:none;border-radius:var(--rs);padding:12px 14px;font-size:13px;margin-top:8px"></div>
+        </div>
+
+        <div class="fg">
+          <label class="flbl">Nome / descrizione *</label>
+          <input type="text" class="fi" id="doc-nome" placeholder="es. Rx colonna cervicale, Referto PS...">
+        </div>
+        <div class="fg">
+          <label class="flbl">Data documento *</label>
+          <input type="date" class="fi" id="doc-data">
+        </div>
+        <div class="fg full">
+          <label class="flbl">Note aggiuntive</label>
+          <textarea class="fta" id="doc-note" placeholder="Osservazioni, riferimenti, urgenze..."></textarea>
+        </div>
+
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-documento')">Annulla</button><button class="btn btn-p" onclick="salvaDocumento()">Salva documento</button></div>
+  </div>
+</div>
+
+<!-- MODAL LETTERA -->
+<div class="modal-ov" id="m-lettera">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">Registra corrispondenza</div><button class="mclose" onclick="closeModal('m-lettera')">×</button></div>
+    <div class="mbody">
+      <div class="fgrid">
+        <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="lett-data"></div>
+        <div class="fg"><label class="flbl">Direzione</label>
+          <select class="fsel" id="lett-dir">
+            <option value="ricevuta">Ricevuta da assicurazione</option>
+            <option value="inviata">Inviata a assicurazione</option>
+            <option value="ricevuta-altra">Ricevuta da altra parte</option>
+          </select>
+        </div>
+        <div class="fg full"><label class="flbl">Oggetto / descrizione</label><input type="text" class="fi" id="lett-oggetto" placeholder="es. Offerta risarcimento, Richiesta documentazione..."></div>
+        <div class="fg"><label class="flbl">Importo offerto (se offerta) €</label><input type="number" class="fi" id="lett-importo" min="0"></div>
+        <div class="fg"><label class="flbl">N° protocollo / riferimento</label><input type="text" class="fi" id="lett-proto"></div>
+        <div class="fg full"><label class="flbl">Note</label><textarea class="fta" id="lett-note"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-lettera')">Annulla</button><button class="btn btn-p" onclick="salvaLettera()">Salva</button></div>
+  </div>
+</div>
+
+<!-- MODAL AVANZA FASE -->
+<div class="modal-ov" id="m-fase">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle" id="m-fase-title">Avanza fase</div><button class="mclose" onclick="closeModal('m-fase')">×</button></div>
+    <div class="mbody" id="m-fase-body"></div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-fase')">Annulla</button><button class="btn btn-p" onclick="salvaFase()">Conferma e avanza</button></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// DATI DEMO (sessione 1 — senza database)
+// ═══════════════════════════════════════════════════════
+const USERS = {
+  'admin@studio.it':  {pwd:'admin123',  nome:'Avv. Fabrizio S.', ruolo:'admin',  ini:'FS'},
+  'collab@studio.it': {pwd:'collab123', nome:'Marco Bianchi',    ruolo:'collab', ini:'MB'}
+};
+
+const FASI = [
+  {id:'apertura', label:'Apertura',    short:'1'},
+  {id:'cid',      label:'CID/Doc.',    short:'2'},
+  {id:'perizia',  label:'Perizia',     short:'3'},
+  {id:'medico',   label:'Med. Legale', short:'4'},
+  {id:'offerta',  label:'Offerta',     short:'5'},
+  {id:'chiusa',   label:'Chiusa',      short:'6'},
+];
+
+let pratiche = [
+  {
+    id:'SIN-2026-001', data:'2026-01-15', luogo:'Via Roma 12, Bracciano', tipo:'tamponamento',
+    assistito:{nome:'Luigi', cognome:'Verdi', cf:'VRDLGU80A01H501U', tel:'333 1234567', email:'luigi@email.it', ruolo:'danneggiato', targa:'AB123CD', assicurazione:'UnipolSai', polizza:'POL001'},
+    controparte:{nome:'Mario', cognome:'Rossi', cf:'', targa:'EF456GH', assicurazione:'Generali', sinistro:'SIN2024001'},
+    danno:{fisico:true, materiale:true, morale:false},
+    fase:'perizia', forze:'polizia',
+    note:'Cliente tamponato a bassa velocità. Riferisce dolore cervicale.',
+    collab:'collab@studio.it',
+    corrispondenza:[
+      {data:'2026-01-20', dir:'ricevuta', oggetto:'Accettazione sinistro', importo:0, proto:'GEN-001', note:''},
+      {data:'2026-02-05', dir:'inviata',  oggetto:'Richiesta documentazione medica', importo:0, proto:'', note:''},
+    ],
+    perizia:{perito:'Ing. Carlo Bianchi', data_nomina:'2026-02-10', data_sopralluogo:'2026-02-18', importo_stimato:4200, note:''},
+    medico:{medico:'', data_nomina:'', data_visita:'', invalidita:'', lesioni:'', note:''},
+    documenti:[
+      {id:'d1', tipo:'cid',    nome:'CID firmato da entrambe le parti', data:'2026-01-16', note:'Firmato sul posto', file:null, hasFile:false},
+      {id:'d2', tipo:'perizia',nome:'Relazione perito Ing. Bianchi',    data:'2026-02-20', note:'Stima danni € 4.200', file:null, hasFile:false},
+      {id:'d3', tipo:'lettera',nome:'Accettazione sinistro Generali',    data:'2026-01-20', note:'Prot. GEN-001', file:null, hasFile:false},
+      {id:'d4', tipo:'foto',   nome:'Foto danni veicolo (6 scatti)',     data:'2026-01-16', note:'Scattate sul luogo', file:null, hasFile:false},
+    ],
+    timeline:[
+      {data:'2026-01-15', titolo:'Sinistro', desc:'Tamponamento in Via Roma 12'},
+      {data:'2026-01-16', titolo:'Apertura pratica', desc:'Pratica aperta dallo studio'},
+      {data:'2026-01-20', titolo:'Lettera ricevuta', desc:'Accettazione sinistro da Generali'},
+      {data:'2026-02-10', titolo:'Nomina perito', desc:'Ing. Carlo Bianchi nominato perito'},
+    ]
+  },
+  {
+    id:'SIN-2026-002', data:'2026-02-03', luogo:'SS2 km 45, Anguillara', tipo:'frontale',
+    assistito:{nome:'Anna', cognome:'Neri', cf:'NRANNA75B41H501U', tel:'347 9876543', email:'anna@email.it', ruolo:'danneggiato', targa:'CD789EF', assicurazione:'Allianz', polizza:'POL002'},
+    controparte:{nome:'Mario', cognome:'Rossi', cf:'', targa:'GH012IJ', assicurazione:'AXA', sinistro:''},
+    danno:{fisico:true, materiale:false, morale:true},
+    fase:'medico', forze:'carabinieri',
+    note:'Frontale violento. Lesioni serie alla spalla.',
+    collab:'',
+    corrispondenza:[],
+    perizia:{perito:'Ing. Sara Marini', data_nomina:'2026-02-20', data_sopralluogo:'2026-03-01', importo_stimato:0, note:'Solo danni fisici'},
+    medico:{medico:'Dr. Luca Ferrari', data_nomina:'2026-03-05', data_visita:'2026-03-12', invalidita:'8', lesioni:'Lesione cuffia dei rotatori spalla sinistra', note:''},
+    documenti:[
+      {id:'d5', tipo:'ps', nome:'Certificato pronto soccorso',       data:'2026-02-03', note:'', file:null, hasFile:false, medico:{struttura:'Ospedale San Camillo, Roma',reparto:'Pronto Soccorso',nome:'Dr. Verdi',specializ:'Medico urgenza',parte:'Spalla sinistra',esito:'Trauma distorsivo spalla',prognosi:'30',num_referto:'PS-2026-0891'}},
+      {id:'d6', tipo:'ml', nome:'Relazione medico legale Dr. Ferrari', data:'2026-03-15', note:'IP 8%', file:null, hasFile:false, medico:{struttura:'Studio medico privato',reparto:'Medicina legale',nome:'Ferrari',specializ:'Medico legale',parte:'Spalla sinistra',esito:'Lesione cuffia rotatori — IP 8%',prognosi:'',num_referto:'ML-2026-045'}},
+    ],
+    timeline:[
+      {data:'2026-02-03', titolo:'Sinistro', desc:'Frontale SS2'},
+      {data:'2026-02-04', titolo:'Apertura pratica', desc:'Pratica aperta'},
+      {data:'2026-03-05', titolo:'Nomina medico legale', desc:'Dr. Luca Ferrari'},
+    ]
+  },
+  {
+    id:'SIN-2026-003', data:'2026-03-10', luogo:'Piazza del Comune, Bracciano', tipo:'rotatoria',
+    assistito:{nome:'Mario', cognome:'Rossi', cf:'RSSMRA70C15H501U', tel:'339 1122334', email:'mario.rossi@email.it', ruolo:'responsabile', targa:'GH012IJ', assicurazione:'AXA', polizza:'POL003'},
+    controparte:{nome:'Anna', cognome:'Neri', cf:'', targa:'CD789EF', assicurazione:'Allianz', sinistro:'ALZ2026001'},
+    danno:{fisico:false, materiale:true, morale:false},
+    fase:'cid', forze:'no',
+    note:'Cliente risulta responsabile. CID firmato.',
+    collab:'collab@studio.it',
+    corrispondenza:[],
+    perizia:{perito:'', data_nomina:'', data_sopralluogo:'', importo_stimato:0, note:''},
+    medico:{perito:'', data_nomina:'', data_visita:'', invalidita:'', lesioni:'', note:''},
+    documenti:[
+      {id:'d7', tipo:'cid', nome:'CID pratica rotatoria', data:'2026-03-10', note:'CID firmato', file:null, hasFile:false},
+    ],
+    timeline:[
+      {data:'2026-03-10', titolo:'Sinistro', desc:'Rotatoria Piazza del Comune'},
+      {data:'2026-03-11', titolo:'Apertura pratica', desc:'Pratica aperta'},
+    ]
+  }
+];
+
+let praticaCorrente = null;
+let currentUser = null;
+
+// ═══ CONFLITTI ═══
+// Mario Rossi appare in SIN-2026-002 come CONTROPARTE e in SIN-2026-003 come ASSISTITO
+// Anna Neri appare in SIN-2026-002 come ASSISTITA e in SIN-2026-003 come CONTROPARTE
+
+// ═══════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════
+function fmtData(d){ if(!d) return '—'; const p=d.split('-'); return p[2]+'/'+p[1]+'/'+p[0].slice(2); }
+function fmtEur(n){ return n ? '€ '+parseInt(n).toLocaleString('it-IT') : '—'; }
+function ini(n){ return n ? n.split(' ').map(p=>p[0]).join('').toUpperCase().slice(0,2) : '??'; }
+
+function toast(msg, tipo='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast '+tipo;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 3200);
+}
+
+const FASE_LABEL = {apertura:'Apertura',cid:'CID / Documenti',perizia:'Perizia',medico:'Medico Legale',offerta:'Offerta',chiusa:'Chiusa'};
+const FASE_BADGE = {apertura:'bb',cid:'ba',perizia:'ba',medico:'ba',offerta:'bg',chiusa:'bgr'};
+const RUOLO_LABEL = {danneggiato:'Danneggiato',responsabile:'Responsabile',terzo:'Terzo trasportato',pedone:'Pedone'};
+const RUOLO_BADGE = {danneggiato:'bg',responsabile:'br',terzo:'bb',pedone:'ba'};
+
+// ═══════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════
+function doLogin() {
+  const email = document.getElementById('l-email').value.trim();
+  const pwd   = document.getElementById('l-pwd').value;
+  const u = USERS[email];
+  if (!u || u.pwd !== pwd) { document.getElementById('lerr').style.display='block'; return; }
+  currentUser = {...u, email};
+  document.getElementById('lerr').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  initApp();
+}
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('l-pwd').value = '';
+}
+document.addEventListener('keydown', e => {
+  if (e.key==='Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+// ═══════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════
+function initApp() {
+  document.getElementById('u-ini').textContent  = currentUser.ini;
+  document.getElementById('u-nome').textContent = currentUser.nome;
+  document.getElementById('u-ruolo').textContent = currentUser.ruolo === 'admin' ? 'Amministratore' : 'Collaboratore';
+
+  const isAdmin = currentUser.ruolo === 'admin';
+  document.querySelectorAll('.adm').forEach(el => {
+    el.style.display = isAdmin ? (el.classList.contains('ni') ? 'flex' : 'block') : 'none';
+  });
+
+  // Collaboratori nel form nuova pratica
+  document.getElementById('n-collab').innerHTML =
+    '<option value="">— Nessuno (gestisco io) —</option>' +
+    Object.entries(USERS).filter(([,u])=>u.ruolo==='collab').map(([e,u])=>`<option value="${e}">${u.nome}</option>`).join('');
+
+  renderDashboard();
+  renderListaPratiche();
+  renderConflitti();
+  renderReport();
+  goTo('dashboard');
+}
+
+// ═══════════════════════════════════════════════════════
+// NAVIGAZIONE
+// ═══════════════════════════════════════════════════════
+const TITOLI = {
+  dashboard:'Dashboard', pratiche:'Pratiche', nuova:'Nuova pratica',
+  conflitti:'Controllo conflitti', report:'Report studio', dettaglio:'Dettaglio pratica'
+};
+const ADM_SEZIONI = ['conflitti','report'];
+
+function goTo(id) {
+  if (ADM_SEZIONI.includes(id) && currentUser?.ruolo !== 'admin') return;
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  document.querySelectorAll('.ni').forEach(n =>
+    n.classList.toggle('active', n.getAttribute('onclick') === `goTo('${id}')`)
+  );
+  document.getElementById('page-title').textContent = TITOLI[id] || id;
+  const acts = document.getElementById('page-act');
+  acts.innerHTML = '';
+  if (id === 'pratiche') acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="goTo(\'nuova\')">+ Nuova pratica</button>';
+  if (id === 'dettaglio' && praticaCorrente) {
+    acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>`;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFLITTI — LOGICA CORE
+// ═══════════════════════════════════════════════════════
+function trovaConflitti(nome, cognome, cf, targa, praticaEsclusa) {
+  const risultati = [];
+  const nomeCompleto = (nome+' '+cognome).trim().toLowerCase();
+
+  pratiche.forEach(p => {
+    if (p.id === praticaEsclusa) return;
+    const ass = p.assistito;
+    const cp  = p.controparte;
+
+    // Controlla assistito
+    const nomeAss = (ass.nome+' '+ass.cognome).trim().toLowerCase();
+    if (nomeCompleto && nomeCompleto.length > 2 && nomeAss.includes(nomeCompleto.split(' ')[0]) && nomeAss.includes(nomeCompleto.split(' ').slice(-1)[0])) {
+      risultati.push({pratica:p.id, data:p.data, luogo:p.luogo, ruolo:ass.ruolo, lato:'assistito', cf:ass.cf, targa:ass.targa});
+    }
+    if (cf && cf.length > 8 && ass.cf && ass.cf.toUpperCase() === cf.toUpperCase()) {
+      if (!risultati.find(r=>r.pratica===p.id&&r.lato==='assistito')) {
+        risultati.push({pratica:p.id, data:p.data, luogo:p.luogo, ruolo:ass.ruolo, lato:'assistito', cf:ass.cf, targa:ass.targa});
+      }
+    }
+    if (targa && targa.length > 4 && ass.targa && ass.targa.toUpperCase() === targa.toUpperCase()) {
+      if (!risultati.find(r=>r.pratica===p.id&&r.lato==='assistito-targa')) {
+        risultati.push({pratica:p.id, data:p.data, luogo:p.luogo, ruolo:ass.ruolo, lato:'assistito-targa', cf:ass.cf, targa:ass.targa});
+      }
+    }
+
+    // Controlla controparte
+    const nomeCp = (cp.nome+' '+cp.cognome).trim().toLowerCase();
+    if (nomeCompleto && nomeCompleto.length > 2 && nomeCp.length > 2 && nomeCp.includes(nomeCompleto.split(' ')[0]) && nomeCp.includes(nomeCompleto.split(' ').slice(-1)[0])) {
+      risultati.push({pratica:p.id, data:p.data, luogo:p.luogo, ruolo:'controparte', lato:'controparte', cf:cp.cf, targa:cp.targa});
+    }
+    if (targa && targa.length > 4 && cp.targa && cp.targa.toUpperCase() === targa.toUpperCase()) {
+      if (!risultati.find(r=>r.pratica===p.id&&r.lato==='controparte')) {
+        risultati.push({pratica:p.id, data:p.data, luogo:p.luogo, ruolo:'controparte', lato:'controparte-targa', cf:cp.cf, targa:cp.targa});
+      }
+    }
+  });
+  return risultati;
+}
+
+function renderConflittoBox(risultati, soggetto) {
+  if (risultati.length === 0) {
+    return `<div class="conflict-result-ok">✓ Nessun conflitto rilevato per ${soggetto}</div>`;
+  }
+  const html = risultati.map(r => {
+    const ruoloLabel = r.ruolo==='danneggiato'?'Danneggiato':r.ruolo==='responsabile'?'Responsabile':r.ruolo==='controparte'?'Controparte':'Altro';
+    const isConflitto = (r.ruolo==='responsabile'&&soggetto.includes('danneggiato')) || (r.ruolo==='danneggiato'&&soggetto.includes('responsabile'));
+    return `<div style="margin-bottom:6px">
+      ⚠ Appare in <strong>${r.pratica}</strong> come <strong>${ruoloLabel}</strong> — ${fmtData(r.data)} · ${r.luogo}
+      ${isConflitto?'<span class="conflict-badge" style="margin-left:6px">POSSIBILE CONFLITTO INTERESSI</span>':''}
+    </div>`;
+  }).join('');
+  return `<div class="conflict-result">${html}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard() {
+  const mie = currentUser?.ruolo === 'admin' ? pratiche : pratiche.filter(p => p.collab === currentUser?.email || !p.collab);
+  const attive = mie.filter(p => p.fase !== 'chiusa').length;
+  const chiuse = pratiche.filter(p => p.fase === 'chiusa').length;
+
+  // Conta conflitti globali
+  let nConflitti = 0;
+  pratiche.forEach(p => {
+    const r = trovaConflitti(p.assistito.nome, p.assistito.cognome, p.assistito.cf, p.assistito.targa, p.id);
+    if (r.length > 0) nConflitti++;
+  });
+
+  document.getElementById('d-attive').textContent    = attive;
+  document.getElementById('d-pending').textContent   = mie.filter(p=>p.fase==='offerta').length;
+  document.getElementById('d-conflitti').textContent = nConflitti;
+  document.getElementById('d-chiuse').textContent    = chiuse;
+
+  // Alert conflitti
+  const alertEl = document.getElementById('dash-conflict-alert');
+  if (nConflitti > 0 && currentUser?.ruolo === 'admin') {
+    alertEl.innerHTML = `<div class="notif n-danger" style="margin-bottom:16px">
+      ⚠ <strong>${nConflitti} pratica/e con soggetti già presenti in altre pratiche</strong> — 
+      <span style="text-decoration:underline;cursor:pointer" onclick="goTo('conflitti')">verifica conflitti</span>
+    </div>`;
+  } else { alertEl.innerHTML = ''; }
+
+  // Ultime pratiche
+  const ul = [...mie].slice(0,4);
+  document.getElementById('dash-pratiche-list').innerHTML = ul.length
+    ? ul.map(p=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--brd);cursor:pointer" onclick="apriDettaglio('${p.id}')">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--ac)">${p.id}</div>
+          <div style="font-size:13px;font-weight:700">${p.assistito.nome} ${p.assistito.cognome}</div>
+          <div style="font-size:11px;color:var(--tx3)">${fmtData(p.data)} · ${p.luogo}</div>
+        </div>
+        <div style="text-align:right">
+          <span class="badge ${FASE_BADGE[p.fase]}">${FASE_LABEL[p.fase]}</span>
+          <div style="margin-top:4px"><span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}">${RUOLO_LABEL[p.assistito.ruolo]}</span></div>
+        </div>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:var(--tx3);padding:16px 0;text-align:center">Nessuna pratica</div>';
+
+  // Distribuzione fasi (admin)
+  const perFase = {};
+  FASI.forEach(f => { perFase[f.id] = pratiche.filter(p=>p.fase===f.id).length; });
+  const maxF = Math.max(...Object.values(perFase), 1);
+  document.getElementById('dash-fasi').innerHTML = FASI.map(f => `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--tx2);width:90px;flex-shrink:0">${f.label}</div>
+      <div style="flex:1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(perFase[f.id]/maxF*100)}%;background:var(--ac);border-radius:3px"></div>
+      </div>
+      <div style="font-size:12px;color:var(--tx2);width:20px;text-align:right">${perFase[f.id]}</div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// LISTA PRATICHE
+// ═══════════════════════════════════════════════════════
+function renderListaPratiche(filtrate) {
+  const lista = filtrate || (currentUser?.ruolo === 'admin' ? pratiche : pratiche.filter(p=>p.collab===currentUser?.email||!p.collab));
+  const el = document.getElementById('lista-pratiche');
+  if (lista.length === 0) {
+    el.innerHTML = '<div style="font-size:13px;color:var(--tx3);text-align:center;padding:40px">Nessuna pratica trovata</div>';
+    return;
+  }
+  el.innerHTML = lista.map(p => {
+    const conflitti = trovaConflitti(p.assistito.nome, p.assistito.cognome, p.assistito.cf, p.assistito.targa, p.id);
+    const hasConflict = conflitti.length > 0;
+    const danni = [p.danno.fisico&&'Fisico', p.danno.materiale&&'Materiale', p.danno.morale&&'Morale'].filter(Boolean).join(' + ');
+    return `<div class="pratica-card ${hasConflict?'conflict-flag':''}" onclick="apriDettaglio('${p.id}')">
+      <div class="pc-num">${p.id}</div>
+      <div class="pc-info">
+        <div class="pc-nome">${p.assistito.nome} ${p.assistito.cognome}</div>
+        <div class="pc-det">${fmtData(p.data)} · ${p.luogo} · ${danni}</div>
+        <div class="pc-det" style="margin-top:2px">Targa: ${p.assistito.targa||'—'} · Controparte: ${p.controparte.nome} ${p.controparte.cognome}</div>
+      </div>
+      <div class="pc-fase" style="display:flex;flex-direction:column;gap:4px;align-items:center">
+        <span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}">${RUOLO_LABEL[p.assistito.ruolo]}</span>
+        ${hasConflict ? '<span class="conflict-badge">⚠ Conflitto</span>' : ''}
+      </div>
+      <div class="pc-stato">
+        <span class="badge ${FASE_BADGE[p.fase]}">${FASE_LABEL[p.fase]}</span>
+        ${p.collab ? `<div style="font-size:11px;color:var(--tx3);margin-top:4px">${USERS[p.collab]?.nome||p.collab}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtraPratiche() {
+  const q     = document.getElementById('search-pratiche').value.toLowerCase();
+  const fase  = document.getElementById('filter-fase').value;
+  const ruolo = document.getElementById('filter-ruolo').value;
+  const base  = currentUser?.ruolo === 'admin' ? pratiche : pratiche.filter(p=>p.collab===currentUser?.email||!p.collab);
+  const filtrate = base.filter(p => {
+    const matchQ = !q || p.id.toLowerCase().includes(q)
+      || (p.assistito.nome+' '+p.assistito.cognome).toLowerCase().includes(q)
+      || (p.assistito.targa||'').toLowerCase().includes(q)
+      || p.luogo.toLowerCase().includes(q);
+    const matchFase  = !fase  || p.fase === fase;
+    const matchRuolo = !ruolo || p.assistito.ruolo === ruolo;
+    return matchQ && matchFase && matchRuolo;
+  });
+  renderListaPratiche(filtrate);
+}
+
+// ═══════════════════════════════════════════════════════
+// DETTAGLIO PRATICA
+// ═══════════════════════════════════════════════════════
+function apriDettaglio(id) {
+  praticaCorrente = pratiche.find(p => p.id === id);
+  if (!praticaCorrente) return;
+  renderDettaglio();
+  goTo('dettaglio');
+}
+
+function renderDettaglio() {
+  const p = praticaCorrente;
+  if (!p) return;
+
+  // Header
+  document.getElementById('det-numero').textContent = p.id;
+  document.getElementById('det-nome').textContent   = p.assistito.nome + ' ' + p.assistito.cognome;
+  document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
+
+  // Badge
+  const danni = [p.danno.fisico&&'Fisico', p.danno.materiale&&'Materiale', p.danno.morale&&'Morale'].filter(Boolean);
+  document.getElementById('det-badges').innerHTML =
+    `<span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}">${RUOLO_LABEL[p.assistito.ruolo]}</span>` +
+    `<span class="badge ${FASE_BADGE[p.fase]}">${FASE_LABEL[p.fase]}</span>` +
+    danni.map(d=>`<span class="badge bgr">${d}</span>`).join('') +
+    (p.forze!=='no'?`<span class="badge bb">Forze: ${p.forze}</span>`:'');
+
+  // Conflitti banner
+  const conflitti = trovaConflitti(p.assistito.nome, p.assistito.cognome, p.assistito.cf, p.assistito.targa, p.id);
+  const bannerEl = document.getElementById('det-conflict-banner');
+  if (conflitti.length > 0) {
+    bannerEl.innerHTML = `<div class="n-conflict" style="margin-bottom:16px">
+      <strong>⚠ Attenzione — soggetto presente in altre pratiche</strong><br>
+      ${conflitti.map(r=>`· Pratica <strong>${r.pratica}</strong> come <strong>${r.ruolo==='controparte'?'Controparte':RUOLO_LABEL[r.ruolo]||r.ruolo}</strong> — ${fmtData(r.data)}`).join('<br>')}
+    </div>`;
+  } else { bannerEl.innerHTML = ''; }
+
+  // Steps
+  const faseIdx = FASI.findIndex(f => f.id === p.fase);
+  document.getElementById('det-steps').innerHTML = FASI.map((f, i) => {
+    const done   = i < faseIdx;
+    const active = i === faseIdx;
+    const cls    = done ? 'done' : active ? 'active' : '';
+    const line   = i < FASI.length-1 ? `<div class="step-line ${done||active?'done':''}"></div>` : '';
+    return `<div class="step ${cls}">
+      <div class="step-circle">${done?'✓':f.short}</div>
+      <span style="font-size:10px;white-space:nowrap">${f.label}</span>
+    </div>${line}`;
+  }).join('');
+
+  // Fase corrente — contenuto
+  renderFaseContent();
+
+  // Dati pratica + riepilogo documenti medici
+  const docs = p.documenti || [];
+  const docsMedici = docs.filter(d => ['ps','rx','tac','rmn','eco','visita','referto','ml'].includes(d.tipo));
+  const docsLettere = docs.filter(d => d.tipo === 'lettera');
+
+  // Riepilogo documenti medici
+  let riepilogoMedici = '';
+  if (docsMedici.length > 0) {
+    riepilogoMedici = '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--brd)">';
+    riepilogoMedici += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ac);margin-bottom:8px">Documentazione medica</div>';
+    riepilogoMedici += docsMedici.map(d => {
+      const m = d.medico || {};
+      const tipo = DOC_TIPI[d.tipo] || DOC_TIPI.altro;
+      return '<div style="background:var(--bg);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--ac)">' +
+        '<div style="font-size:12px;font-weight:700;color:var(--tx);margin-bottom:4px">' + tipo.icon + ' ' + d.nome + '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px">' +
+        (d.data ? '<div><span style="color:var(--tx3)">Data: </span>' + fmtData(d.data) + '</div>' : '') +
+        (m.struttura ? '<div><span style="color:var(--tx3)">Struttura: </span><strong>' + m.struttura + '</strong></div>' : '') +
+        (m.reparto ? '<div><span style="color:var(--tx3)">Reparto: </span>' + m.reparto + '</div>' : '') +
+        (m.nome ? '<div><span style="color:var(--tx3)">Medico: </span><strong>Dr. ' + m.nome + '</strong>' + (m.specializ ? ' (' + m.specializ + ')' : '') + '</div>' : '') +
+        (m.parte ? '<div><span style="color:var(--tx3)">Parte: </span>' + m.parte + '</div>' : '') +
+        (m.esito ? '<div style="grid-column:1/-1"><span style="color:var(--tx3)">Diagnosi: </span><strong style="color:var(--rd)">' + m.esito + '</strong></div>' : '') +
+        (m.prognosi ? '<div><span style="color:var(--tx3)">Prognosi: </span><strong>' + m.prognosi + ' giorni</strong></div>' : '') +
+        (m.num_referto ? '<div><span style="color:var(--tx3)">N° referto: </span>' + m.num_referto + '</div>' : '') +
+        (d.note ? '<div style="grid-column:1/-1;color:var(--tx2);font-style:italic">' + d.note + '</div>' : '') +
+        '</div></div>';
+    }).join('');
+    riepilogoMedici += '</div>';
+  }
+
+  // Riepilogo lettere assicurazione con importi
+  let riepilogoLettere = '';
+  if (docsLettere.length > 0) {
+    const conImporto = docsLettere.filter(d => d.medico && d.medico.importo > 0);
+    if (conImporto.length > 0) {
+      riepilogoLettere = '<div style="margin-top:10px;padding:10px 12px;background:var(--gnl);border-radius:var(--rs);border-left:3px solid var(--gnb)">';
+      riepilogoLettere += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--gn);margin-bottom:6px">Offerte ricevute</div>';
+      conImporto.forEach(d => {
+        riepilogoLettere += '<div style="font-size:13px;font-weight:700;color:var(--gn)">' + fmtEur(d.medico.importo) + ' <span style="font-size:11px;font-weight:400;color:var(--gn)">— ' + fmtData(d.data) + '</span></div>';
+      });
+      riepilogoLettere += '</div>';
+    }
+  }
+
+  document.getElementById('det-dati').innerHTML =
+    '<table style="font-size:12px;width:100%;border-collapse:collapse">' +
+    '<tr><td style="color:var(--tx3);padding:4px 0;width:40%">Controparte</td><td style="padding:4px 0;font-weight:700">' + p.controparte.nome + ' ' + p.controparte.cognome + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Targa controparte</td><td style="padding:4px 0">' + (p.controparte.targa||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Ass. controparte</td><td style="padding:4px 0">' + (p.controparte.assicurazione||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">N° sinistro ass.</td><td style="padding:4px 0">' + (p.controparte.sinistro||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">CF assistito</td><td style="padding:4px 0;font-family:monospace">' + (p.assistito.cf||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Telefono</td><td style="padding:4px 0">' + (p.assistito.tel||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Collaboratore</td><td style="padding:4px 0">' + (p.collab?USERS[p.collab]?.nome:'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Note</td><td style="padding:4px 0">' + (p.note||'—') + '</td></tr>' +
+    '</table>' + riepilogoMedici + riepilogoLettere;
+
+  // Corrispondenza
+  const corrEl = document.getElementById('det-corrispondenza');
+  if (p.corrispondenza.length === 0) {
+    corrEl.innerHTML = '<div style="font-size:12px;color:var(--tx3)">Nessuna corrispondenza registrata</div>';
+  } else {
+    corrEl.innerHTML = p.corrispondenza.map(c=>`
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--brd)">
+        <div>
+          <div style="font-size:12px;font-weight:700">${c.oggetto}</div>
+          <div style="font-size:11px;color:var(--tx3)">${fmtData(c.data)} · ${c.dir==='ricevuta'?'← Ricevuta':'→ Inviata'}${c.proto?' · Prot. '+c.proto:''}</div>
+        </div>
+        ${c.importo?`<div style="font-size:13px;font-weight:700;color:var(--gn)">${fmtEur(c.importo)}</div>`:''}
+      </div>`).join('');
+  }
+
+  // Timeline
+  // Documenti
+  docTabAttiva = 'tutti';
+  renderDocumenti();
+
+  document.getElementById('det-timeline').innerHTML = [...p.timeline].reverse().map(t=>`
+    <div class="tl-item">
+      <div class="tl-data">${fmtData(t.data)}</div>
+      <div class="tl-titolo">${t.titolo}</div>
+      <div class="tl-desc">${t.desc}</div>
+    </div>`).join('');
+}
+
+function renderFaseContent() {
+  const p = praticaCorrente;
+  const faseIdx = FASI.findIndex(f => f.id === p.fase);
+  const el = document.getElementById('det-fase-content');
+  const title = document.getElementById('det-fase-title');
+  title.textContent = FASE_LABEL[p.fase];
+
+  let html = '';
+  if (p.fase === 'apertura') {
+    html = `<div class="notif n-info">Fase iniziale — verifica il CID e la documentazione del sinistro</div>
+      <button class="btn btn-p btn-sm" onclick="openAvanzaFase()">Avanza a CID / Documenti →</button>`;
+  } else if (p.fase === 'cid') {
+    html = `<div style="font-size:12px;color:var(--tx2);margin-bottom:12px">Raccolta documentazione: CID firmato, denuncia sinistro, verbale forze dell'ordine, foto.</div>
+      <button class="btn btn-p btn-sm" onclick="openAvanzaFase()">Avanza a Perizia →</button>`;
+  } else if (p.fase === 'perizia') {
+    html = `<table style="font-size:12px;width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr><td style="color:var(--tx3);padding:4px 0;width:40%">Perito nominato</td><td style="padding:4px 0;font-weight:700">${p.perizia.perito||'—'}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Data nomina</td><td style="padding:4px 0">${fmtData(p.perizia.data_nomina)}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Data sopralluogo</td><td style="padding:4px 0">${fmtData(p.perizia.data_sopralluogo)}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Importo stimato</td><td style="padding:4px 0;font-weight:700">${fmtEur(p.perizia.importo_stimato)}</td></tr>
+    </table>
+    <button class="btn btn-p btn-sm" onclick="openAvanzaFase()">Avanza a Medico Legale →</button>`;
+  } else if (p.fase === 'medico') {
+    html = `<table style="font-size:12px;width:100%;border-collapse:collapse;margin-bottom:14px">
+      <tr><td style="color:var(--tx3);padding:4px 0;width:40%">Medico legale</td><td style="padding:4px 0;font-weight:700">${p.medico.medico||'—'}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Data nomina</td><td style="padding:4px 0">${fmtData(p.medico.data_nomina)}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Data visita</td><td style="padding:4px 0">${fmtData(p.medico.data_visita)}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Invalidità %</td><td style="padding:4px 0;font-weight:700">${p.medico.invalidita?p.medico.invalidita+'%':'—'}</td></tr>
+      <tr><td style="color:var(--tx3);padding:4px 0">Lesioni</td><td style="padding:4px 0">${p.medico.lesioni||'—'}</td></tr>
+    </table>
+    <button class="btn btn-p btn-sm" onclick="openAvanzaFase()">Avanza a Offerta →</button>`;
+  } else if (p.fase === 'offerta') {
+    const ultimaOfferta = [...p.corrispondenza].filter(c=>c.importo>0).pop();
+    html = `<div style="margin-bottom:14px">
+      ${ultimaOfferta?`<div style="font-size:24px;font-family:'Playfair Display',serif;color:var(--gn)">${fmtEur(ultimaOfferta.importo)}</div><div style="font-size:12px;color:var(--tx3)">Ultima offerta ricevuta — ${fmtData(ultimaOfferta.data)}</div>`:'<div style="font-size:12px;color:var(--tx3)">Nessuna offerta registrata ancora</div>'}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-p btn-sm" onclick="openModal('m-lettera')">Registra offerta</button>
+      <button class="btn btn-sm" onclick="openAvanzaFase()">Chiudi pratica →</button>
+    </div>`;
+  } else if (p.fase === 'chiusa') {
+    html = `<div class="notif n-ok">Pratica chiusa e liquidata</div>`;
+  }
+
+  el.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// AVANZA FASE
+// ═══════════════════════════════════════════════════════
+function openAvanzaFase() {
+  const p = praticaCorrente;
+  const faseIdx = FASI.findIndex(f => f.id === p.fase);
+  const prossima = FASI[faseIdx + 1];
+  if (!prossima) return;
+
+  document.getElementById('m-fase-title').textContent = 'Avanza a: ' + FASE_LABEL[prossima.id];
+
+  let body = `<div class="notif n-info" style="margin-bottom:16px">Stai avanzando la pratica <strong>${p.id}</strong> alla fase <strong>${FASE_LABEL[prossima.id]}</strong></div>`;
+
+  if (prossima.id === 'perizia') {
+    body += `<div class="fgrid">
+      <div class="fg full"><label class="flbl">Perito nominato</label><input type="text" class="fi" id="f-perito" placeholder="Nome e titolo del perito"></div>
+      <div class="fg"><label class="flbl">Data nomina</label><input type="date" class="fi" id="f-data-nomina"></div>
+      <div class="fg"><label class="flbl">Data sopralluogo</label><input type="date" class="fi" id="f-data-sopralluogo"></div>
+      <div class="fg"><label class="flbl">Importo stimato (€)</label><input type="number" class="fi" id="f-importo-stimato" min="0"></div>
+      <div class="fg full"><label class="flbl">Note perizia</label><textarea class="fta" id="f-note-perizia"></textarea></div>
+    </div>`;
+  } else if (prossima.id === 'medico') {
+    body += `<div class="fgrid">
+      <div class="fg full"><label class="flbl">Medico legale nominato</label><input type="text" class="fi" id="f-medico" placeholder="Nome e titolo del medico"></div>
+      <div class="fg"><label class="flbl">Data nomina</label><input type="date" class="fi" id="f-data-nomina-med"></div>
+      <div class="fg"><label class="flbl">Data visita</label><input type="date" class="fi" id="f-data-visita"></div>
+      <div class="fg"><label class="flbl">Invalidità permanente (%)</label><input type="number" class="fi" id="f-invalidita" min="0" max="100" step="0.5"></div>
+      <div class="fg full"><label class="flbl">Lesioni rilevate</label><textarea class="fta" id="f-lesioni" placeholder="Descrizione lesioni..."></textarea></div>
+    </div>`;
+  } else if (prossima.id === 'chiusa') {
+    body += `<div class="fgrid">
+      <div class="fg"><label class="flbl">Importo liquidato (€)</label><input type="number" class="fi" id="f-importo-liq" min="0"></div>
+      <div class="fg"><label class="flbl">Data liquidazione</label><input type="date" class="fi" id="f-data-liq"></div>
+      <div class="fg full"><label class="flbl">Note chiusura</label><textarea class="fta" id="f-note-chiusura"></textarea></div>
+    </div>`;
+  }
+
+  document.getElementById('m-fase-body').innerHTML = body;
+  openModal('m-fase');
+}
+
+function salvaFase() {
+  const p = praticaCorrente;
+  const faseIdx = FASI.findIndex(f => f.id === p.fase);
+  const prossima = FASI[faseIdx + 1];
+  if (!prossima) return;
+
+  if (prossima.id === 'perizia') {
+    p.perizia.perito          = document.getElementById('f-perito')?.value || '';
+    p.perizia.data_nomina     = document.getElementById('f-data-nomina')?.value || '';
+    p.perizia.data_sopralluogo= document.getElementById('f-data-sopralluogo')?.value || '';
+    p.perizia.importo_stimato = parseInt(document.getElementById('f-importo-stimato')?.value)||0;
+    p.perizia.note            = document.getElementById('f-note-perizia')?.value || '';
+    if (p.perizia.perito) p.timeline.push({data:p.perizia.data_nomina||new Date().toISOString().split('T')[0], titolo:'Nomina perito', desc:p.perizia.perito});
+  } else if (prossima.id === 'medico') {
+    p.medico.medico      = document.getElementById('f-medico')?.value || '';
+    p.medico.data_nomina = document.getElementById('f-data-nomina-med')?.value || '';
+    p.medico.data_visita = document.getElementById('f-data-visita')?.value || '';
+    p.medico.invalidita  = document.getElementById('f-invalidita')?.value || '';
+    p.medico.lesioni     = document.getElementById('f-lesioni')?.value || '';
+    if (p.medico.medico) p.timeline.push({data:p.medico.data_nomina||new Date().toISOString().split('T')[0], titolo:'Nomina medico legale', desc:p.medico.medico});
+  } else if (prossima.id === 'chiusa') {
+    const imp = parseInt(document.getElementById('f-importo-liq')?.value)||0;
+    const data = document.getElementById('f-data-liq')?.value || new Date().toISOString().split('T')[0];
+    p.timeline.push({data, titolo:'Pratica chiusa', desc:'Liquidazione: '+fmtEur(imp)});
+  }
+
+  p.fase = prossima.id;
+  p.timeline.push({data:new Date().toISOString().split('T')[0], titolo:'Avanzamento fase', desc:'Pratica avanzata a '+FASE_LABEL[prossima.id]});
+
+  closeModal('m-fase');
+  renderDettaglio();
+  renderDashboard();
+  toast('Fase aggiornata: '+FASE_LABEL[prossima.id]);
+}
+
+// ═══════════════════════════════════════════════════════
+// NUOVA PRATICA + CONTROLLO CONFLITTI IN TEMPO REALE
+// ═══════════════════════════════════════════════════════
+let conflittoTimeout = null;
+
+function cercaConflitti(tipo) {
+  clearTimeout(conflittoTimeout);
+  conflittoTimeout = setTimeout(() => {
+    const nome    = document.getElementById('n-nome')?.value || '';
+    const cognome = document.getElementById('n-cognome')?.value || '';
+    const cf      = document.getElementById('n-cf')?.value || '';
+    const targa   = document.getElementById('n-targa')?.value || '';
+    const cpNome  = document.getElementById('n-cp-nome')?.value || '';
+    const cpCog   = document.getElementById('n-cp-cognome')?.value || '';
+    const cpTarga = document.getElementById('n-cp-targa')?.value || '';
+
+    if (tipo === 'assistito' || tipo === 'cf' || tipo === 'targa') {
+      const r = trovaConflitti(nome, cognome, cf, targa, null);
+      document.getElementById('assistito-conflict-check').innerHTML =
+        (nome.length > 2 || cf.length > 8 || targa.length > 4) ? renderConflittoBox(r, 'assistito') : '';
+    }
+    if (tipo === 'controparte' || tipo === 'targa-cp') {
+      const r = trovaConflitti(cpNome, cpCog, '', cpTarga, null);
+      document.getElementById('controparte-conflict-check').innerHTML =
+        (cpNome.length > 2 || cpTarga.length > 4) ? renderConflittoBox(r, 'controparte') : '';
+    }
+  }, 400);
+}
+
+function salvaPratica() {
+  const data    = document.getElementById('n-data').value;
+  const luogo   = document.getElementById('n-luogo').value.trim();
+  const nome    = document.getElementById('n-nome').value.trim();
+  const cognome = document.getElementById('n-cognome').value.trim();
+  const ruolo   = document.getElementById('n-ruolo').value;
+  if (!data || !luogo || !nome || !cognome) {
+    toast('Compila i campi obbligatori: data, luogo, nome e cognome assistito', 'err');
+    return;
+  }
+  const id = 'SIN-'+new Date().getFullYear()+'-'+String(pratiche.length+1).padStart(3,'0');
+  const nuova = {
+    id, data, luogo,
+    tipo:     document.getElementById('n-tipo').value,
+    forze:    document.getElementById('n-forze').value,
+    assistito:{
+      nome, cognome,
+      cf:            document.getElementById('n-cf').value.toUpperCase(),
+      tel:           document.getElementById('n-tel').value,
+      email:         document.getElementById('n-email').value,
+      ruolo,
+      targa:         document.getElementById('n-targa').value.toUpperCase(),
+      assicurazione: document.getElementById('n-ass-ass').value,
+      polizza:       document.getElementById('n-polizza').value,
+    },
+    controparte:{
+      nome:          document.getElementById('n-cp-nome').value,
+      cognome:       document.getElementById('n-cp-cognome').value,
+      cf:            '',
+      targa:         document.getElementById('n-cp-targa').value.toUpperCase(),
+      assicurazione: document.getElementById('n-cp-ass').value,
+      sinistro:      document.getElementById('n-cp-sinistro').value,
+    },
+    danno:{
+      fisico:    document.getElementById('n-danno-fisico').checked,
+      materiale: document.getElementById('n-danno-materiale').checked,
+      morale:    document.getElementById('n-danno-morale').checked,
+    },
+    nota:       document.getElementById('n-note').value,
+    collab:     document.getElementById('n-collab').value,
+    fase:      'apertura',
+    corrispondenza: [],
+    perizia:   {perito:'',data_nomina:'',data_sopralluogo:'',importo_stimato:0,note:''},
+    medico:    {medico:'',data_nomina:'',data_visita:'',invalidita:'',lesioni:'',note:''},
+    timeline:  [{data, titolo:'Sinistro', desc:'Sinistro in '+luogo}, {data:new Date().toISOString().split('T')[0], titolo:'Apertura pratica', desc:'Pratica aperta dallo studio'}]
+  };
+  pratiche.unshift(nuova);
+  renderDashboard();
+  renderListaPratiche();
+  renderConflitti();
+  toast('Pratica '+id+' aperta!');
+  apriDettaglio(id);
+}
+
+// ═══════════════════════════════════════════════════════
+// CORRISPONDENZA
+// ═══════════════════════════════════════════════════════
+function salvaLettera() {
+  const p = praticaCorrente;
+  if (!p) return;
+  const lett = {
+    data:    document.getElementById('lett-data').value || new Date().toISOString().split('T')[0],
+    dir:     document.getElementById('lett-dir').value,
+    oggetto: document.getElementById('lett-oggetto').value,
+    importo: parseInt(document.getElementById('lett-importo').value)||0,
+    proto:   document.getElementById('lett-proto').value,
+    note:    document.getElementById('lett-note').value,
+  };
+  if (!lett.oggetto) { toast('Inserisci l\'oggetto della lettera','err'); return; }
+  p.corrispondenza.push(lett);
+  p.timeline.push({data:lett.data, titolo:'Corrispondenza', desc:lett.oggetto+(lett.importo?' — '+fmtEur(lett.importo):'')});
+  closeModal('m-lettera');
+  renderDettaglio();
+  toast('Lettera registrata!');
+}
+
+// ═══════════════════════════════════════════════════════
+// CONTROLLO CONFLITTI (sezione admin)
+// ═══════════════════════════════════════════════════════
+function ricercaConflittiManuale() {
+  const q = document.getElementById('conflict-search').value.toLowerCase().trim();
+  const el = document.getElementById('conflict-results');
+  if (q.length < 2) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--tx3);text-align:center;padding:20px">Inizia a digitare per cercare</div>';
+    return;
+  }
+  const trovati = [];
+  pratiche.forEach(p => {
+    const nomeAss = (p.assistito.nome+' '+p.assistito.cognome).toLowerCase();
+    const nomeCp  = (p.controparte.nome+' '+p.controparte.cognome).toLowerCase();
+    const cf      = (p.assistito.cf||'').toLowerCase();
+    const targa   = (p.assistito.targa||'').toLowerCase();
+    const targaCp = (p.controparte.targa||'').toLowerCase();
+    if (nomeAss.includes(q)||nomeCp.includes(q)||cf.includes(q)||targa.includes(q)||targaCp.includes(q)) {
+      trovati.push(p);
+    }
+  });
+
+  if (trovati.length === 0) {
+    el.innerHTML = '<div class="conflict-result-ok">Nessuna pratica trovata per questa ricerca</div>';
+    return;
+  }
+  el.innerHTML = trovati.map(p => `
+    <div style="border:1px solid var(--brd);border-radius:var(--rs);padding:12px 14px;margin-bottom:8px;cursor:pointer" onclick="apriDettaglio('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <span style="font-size:12px;font-weight:700;color:var(--ac)">${p.id}</span>
+          <span style="margin-left:10px;font-size:13px;font-weight:700">${p.assistito.nome} ${p.assistito.cognome}</span>
+          <span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}" style="margin-left:6px">${RUOLO_LABEL[p.assistito.ruolo]}</span>
+        </div>
+        <span class="badge ${FASE_BADGE[p.fase]}">${FASE_LABEL[p.fase]}</span>
+      </div>
+      <div style="font-size:12px;color:var(--tx3);margin-top:4px">Controparte: ${p.controparte.nome} ${p.controparte.cognome} · Targa: ${p.assistito.targa||'—'}</div>
+    </div>`).join('');
+}
+
+function renderConflitti() {
+  const el = document.getElementById('tutti-conflitti');
+  const conflittiTrovati = [];
+  pratiche.forEach(p => {
+    const r = trovaConflitti(p.assistito.nome, p.assistito.cognome, p.assistito.cf, p.assistito.targa, p.id);
+    if (r.length > 0) conflittiTrovati.push({pratica:p, matches:r});
+  });
+  if (conflittiTrovati.length === 0) {
+    el.innerHTML = '<div class="notif n-ok">Nessun conflitto rilevato nel database</div>';
+    return;
+  }
+  el.innerHTML = conflittiTrovati.map(({pratica:p, matches:r}) => `
+    <div class="n-conflict" style="margin-bottom:12px;cursor:pointer" onclick="apriDettaglio('${p.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <strong>${p.id} — ${p.assistito.nome} ${p.assistito.cognome}</strong>
+        <span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}">${RUOLO_LABEL[p.assistito.ruolo]}</span>
+      </div>
+      ${r.map(m=>`<div style="font-size:12px">· In pratica <strong>${m.pratica}</strong> come <strong>${m.ruolo==='controparte'?'Controparte':RUOLO_LABEL[m.ruolo]||m.ruolo}</strong> — ${fmtData(m.data)}</div>`).join('')}
+    </div>`).join('');
+}
+
+function renderReport() {
+  document.getElementById('r-tot').textContent    = pratiche.length;
+  document.getElementById('r-liq').textContent    = pratiche.filter(p=>p.fase==='chiusa').length;
+  document.getElementById('r-durata').textContent = '—';
+
+  const perFase = {};
+  FASI.forEach(f=>{ perFase[f.id]=pratiche.filter(p=>p.fase===f.id).length; });
+  document.getElementById('report-fasi').innerHTML = FASI.map(f=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)">
+      <span style="font-size:13px">${FASE_LABEL[f.id]}</span>
+      <span style="font-size:13px;font-weight:700">${perFase[f.id]}</span>
+    </div>`).join('');
+
+  const dFisico    = pratiche.filter(p=>p.danno.fisico).length;
+  const dMateriale = pratiche.filter(p=>p.danno.materiale).length;
+  const dMorale    = pratiche.filter(p=>p.danno.morale).length;
+  document.getElementById('report-danni').innerHTML = [
+    {label:'Fisico / Lesioni', n:dFisico},
+    {label:'Materiale / Veicolo', n:dMateriale},
+    {label:'Morale', n:dMorale},
+  ].map(d=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--brd)">
+      <span style="font-size:13px">${d.label}</span>
+      <span style="font-size:13px;font-weight:700">${d.n}</span>
+    </div>`).join('');
+}
+
+
+// ═══════════════════════════════════════════════════════
+// DOCUMENTI
+// ═══════════════════════════════════════════════════════
+const DOC_TIPI = {
+  cid:     {label:'CID',              icon:'📋', cls:'doc'},
+  verbale: {label:'Verbale',          icon:'⚖️', cls:'doc'},
+  foto:    {label:'Foto',             icon:'📷', cls:'img'},
+  ps:      {label:'Pronto Soccorso',  icon:'🚑', cls:'pdf'},
+  rx:      {label:'Radiografia',      icon:'🦴', cls:'pdf'},
+  tac:     {label:'TAC',              icon:'🏥', cls:'pdf'},
+  rmn:     {label:'RMN',              icon:'🏥', cls:'pdf'},
+  eco:     {label:'Ecografia',        icon:'🏥', cls:'pdf'},
+  visita:  {label:'Visita specialist.',icon:'👨‍⚕️',cls:'pdf'},
+  referto: {label:'Referto medico',   icon:'📄', cls:'pdf'},
+  ml:      {label:'Relazione ML',     icon:'⚕️', cls:'pdf'},
+  perizia: {label:'Perizia',          icon:'🔧', cls:'doc'},
+  lettera: {label:'Lettera ass.',     icon:'✉️', cls:'note'},
+  altro:   {label:'Altro',            icon:'📁', cls:'doc'},
+};
+let docTabAttiva = 'tutti';
+
+function renderDocumenti() {
+  const p = praticaCorrente;
+  if (!p) return;
+  if (!p.documenti) p.documenti = [];
+
+  // Tabs
+  const counts = {};
+  Object.keys(DOC_TIPI).forEach(t => { counts[t] = p.documenti.filter(d=>d.tipo===t).length; });
+  const tot = p.documenti.length;
+
+  // Raggruppa tab: mostra solo categorie con almeno 1 doc + sempre "Tutti"
+  const tabGruppi = [
+    {id:'sinistro', label:'Sinistro', tipi:['cid','verbale','foto']},
+    {id:'medici',   label:'Medici',   tipi:['ps','rx','tac','rmn','eco','visita','referto','ml']},
+    {id:'legale',   label:'Legale',   tipi:['perizia','lettera','altro']},
+  ];
+  const countGruppo = (tipi) => tipi.reduce((s,t)=>s+(counts[t]||0),0);
+
+  document.getElementById('doc-tabs').innerHTML =
+    `<div class="doc-tab ${docTabAttiva==='tutti'?'active':''}" onclick="setDocTab('tutti')">Tutti (${tot})</div>` +
+    tabGruppi.map(g =>
+      `<div class="doc-tab ${docTabAttiva===g.id?'active':''}" onclick="setDocTabGruppo('${g.id}',${JSON.stringify(g.tipi)})">${g.label} (${countGruppo(g.tipi)})</div>`
+    ).join('') +
+    Object.entries(DOC_TIPI).filter(([k])=>(counts[k]||0)>0).map(([k,v]) =>
+      `<div class="doc-tab ${docTabAttiva===k?'active':''}" onclick="setDocTab('${k}')" style="font-size:10px">${v.icon} ${v.label} (${counts[k]})</div>`
+    ).join('');
+
+  // Contenuto
+  const gruppiId = ['sinistro','medici','legale'];
+  const filtrati = docTabAttiva === 'tutti'
+    ? p.documenti
+    : gruppiId.includes(docTabAttiva) && docTabGruppoTipi
+      ? p.documenti.filter(d=>docTabGruppoTipi.includes(d.tipo))
+      : p.documenti.filter(d=>d.tipo===docTabAttiva);
+  const el = document.getElementById('doc-contenuto');
+
+  if (filtrati.length === 0) {
+    el.innerHTML = `<div style="font-size:12px;color:var(--tx3);text-align:center;padding:20px 0">
+      Nessun documento in questa categoria<br>
+      <button class="btn btn-sm" style="margin-top:8px" onclick="openModal('m-documento')">+ Aggiungi documento</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="doc-grid">` +
+    filtrati.map(d => {
+      const t = DOC_TIPI[d.tipo] || DOC_TIPI.altro;
+      const m = d.medico;
+      return `<div class="doc-card ${d.hasFile?'uploaded':'annotated'}">
+        <button class="doc-del" onclick="eliminaDoc('${d.id}')">×</button>
+        <div class="doc-icon ${t.cls}">${t.icon}</div>
+        <div class="doc-nome">${d.nome}</div>
+        <div class="doc-meta">${d.data?fmtData(d.data):''}</div>
+        ${m&&m.struttura?`<div class="doc-meta" style="margin-top:3px;font-weight:700">🏥 ${m.struttura}</div>`:''}
+        ${m&&m.reparto?`<div class="doc-meta">${m.reparto}</div>`:''}
+        ${m&&m.nome?`<div class="doc-meta">Dr. ${m.nome}${m.specializ?' ('+m.specializ+')':''}</div>`:''}
+        ${m&&m.parte?`<div class="doc-meta">↳ ${m.parte}</div>`:''}
+        ${m&&m.esito?`<div class="doc-meta" style="font-weight:700;color:var(--rd)">${m.esito}</div>`:''}
+        ${m&&m.prognosi?`<div class="doc-meta">Prognosi: ${m.prognosi} gg</div>`:''}
+        ${d.note?`<div class="doc-meta" style="margin-top:3px;font-style:italic">${d.note}</div>`:''}
+        ${d.hasFile?`<div style="margin-top:6px"><span style="font-size:10px;font-weight:700;color:var(--gn)">✓ File caricato</span></div>`:`<div style="margin-top:6px"><span style="font-size:10px;color:var(--tx3)">Solo annotazione</span></div>`}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+function setDocTab(tipo) {
+  docTabAttiva = tipo;
+  renderDocumenti();
+}
+let docTabGruppoTipi = null;
+function setDocTabGruppo(id, tipi) {
+  docTabAttiva = id;
+  docTabGruppoTipi = tipi;
+  renderDocumenti();
+}
+
+function anteprima(input) {
+  const file = input.files[0];
+  if (!file) return;
+  document.getElementById('doc-file-label').textContent = '✓ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+  if (!document.getElementById('doc-nome').value) {
+    document.getElementById('doc-nome').value = file.name.replace(/\.[^.]+$/, '');
+  }
+}
+
+function aggiornaTipoDoc() {
+  const tipo = document.getElementById('doc-tipo').value;
+  const medici = ['ps','rx','tac','rmn','eco','visita','referto','ml'];
+  const el = document.getElementById('campi-medici');
+  el.style.display = medici.includes(tipo) ? 'contents' : 'none';
+}
+
+function salvaDocumento() {
+  const p = praticaCorrente;
+  if (!p) return;
+  const nome = document.getElementById('doc-nome').value.trim();
+  const data = document.getElementById('doc-data').value || new Date().toISOString().split('T')[0];
+  if (!nome) { toast('Inserisci un nome per il documento','err'); return; }
+  if (!p.documenti) p.documenti = [];
+  const tipo = document.getElementById('doc-tipo').value;
+  const medici = ['ps','rx','tac','rmn','eco','visita','referto','ml'];
+  const fileInput = document.getElementById('doc-file');
+  const hasFile = fileInput.files && fileInput.files.length > 0;
+
+  const doc = {
+    id:      'doc-'+Date.now(),
+    tipo, nome, data,
+    note:    document.getElementById('doc-note').value,
+    hasFile,
+    file:    hasFile ? fileInput.files[0].name : null,
+    // Dati medici (valorizzati solo se tipo medico)
+    medico: medici.includes(tipo) ? {
+      struttura:  document.getElementById('doc-struttura').value,
+      reparto:    document.getElementById('doc-reparto').value,
+      nome:       document.getElementById('doc-medico-nome').value,
+      specializ:  document.getElementById('doc-specializ').value,
+      parte:      document.getElementById('doc-parte').value,
+      esito:      document.getElementById('doc-esito').value,
+      prognosi:   document.getElementById('doc-prognosi').value,
+      num_referto:document.getElementById('doc-num-referto').value,
+    } : null,
+  };
+
+  p.documenti.push(doc);
+  // Timeline entry con dettaglio medico
+  let desc = DOC_TIPI[tipo]?.label + ': ' + nome;
+  if (doc.medico?.struttura) desc += ' — ' + doc.medico.struttura;
+  if (doc.medico?.esito) desc += ' — ' + doc.medico.esito;
+  p.timeline.push({data, titolo:'Documento aggiunto', desc});
+
+  closeModal('m-documento');
+  renderDocumenti();
+  renderDettaglio();
+  toast('Documento salvato!');
+
+  // Reset form
+  ['doc-nome','doc-note','doc-data','doc-struttura','doc-reparto','doc-medico-nome',
+   'doc-specializ','doc-esito','doc-prognosi','doc-num-referto'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  document.getElementById('doc-parte').value = '';
+  document.getElementById('doc-file').value = '';
+  document.getElementById('doc-file-label').textContent = 'Clicca per scegliere o trascina qui';
+  document.getElementById('campi-medici').style.display = 'none';
+}
+
+function eliminaDoc(id) {
+  const p = praticaCorrente;
+  if (!p) return;
+  if (!confirm('Eliminare questo documento?')) return;
+  p.documenti = p.documenti.filter(d=>d.id!==id);
+  renderDocumenti();
+  toast('Documento eliminato');
+}
+
+// ═══════════════════════════════════════════════════════
+// AI LETTURA DOCUMENTI
+// ═══════════════════════════════════════════════════════
+
+const CLAUDE_KEY = 'YOUR_API_KEY'; // sostituire con chiave reale o proxy
+
+function gestisciDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-area-doc').style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById('doc-file');
+  // Creo un DataTransfer per assegnare il file all'input
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  caricaEAnalizza(input);
+}
+
+async function caricaEAnalizza(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const label = document.getElementById('doc-file-label');
+  label.textContent = '✓ ' + file.name + ' (' + (file.size/1024).toFixed(0) + ' KB)';
+
+  // Precompila nome se vuoto
+  const nomeEl = document.getElementById('doc-nome');
+  if (!nomeEl.value) nomeEl.value = file.name.replace(/\.[^.]+$/, '');
+
+  // Mostra stato caricamento
+  const statoEl = document.getElementById('ai-stato');
+  statoEl.className = 'ai-loading';
+  statoEl.style.display = 'flex';
+  statoEl.innerHTML = '<span class="spin" style="border-color:rgba(27,58,92,.3);border-top-color:var(--ac)"></span> Lettura AI in corso...';
+
+  try {
+    // Converti file in base64
+    const base64 = await fileToBase64(file);
+    const tipo = document.getElementById('doc-tipo').value;
+    const prompt = buildPrompt(tipo);
+    const mediaType = file.type || 'application/pdf';
+
+    // Chiama Claude API
+    const risposta = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': CLAUDE_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: mediaType.startsWith('image') ? 'image' : 'document',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64
+              }
+            },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if (!risposta.ok) throw new Error('API error: ' + risposta.status);
+    const data = await risposta.json();
+    const testo = data.content[0]?.text || '';
+
+    // Parsa JSON dalla risposta
+    const json = estraiJSON(testo);
+    if (!json) throw new Error('Risposta AI non valida');
+
+    // Compila i campi
+    compilaCampi(json);
+
+    statoEl.className = 'ai-ok';
+    statoEl.innerHTML = '✓ Dati estratti — verifica e correggi se necessario';
+
+  } catch(err) {
+    console.error('AI error:', err);
+    statoEl.className = 'ai-err';
+    statoEl.innerHTML = "⚠ Lettura AI non disponibile — compila i campi manualmente. (" + err.message + ")";
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function buildPrompt(tipo) {
+  const medici = ['ps','rx','tac','rmn','eco','visita','referto','ml'];
+  if (medici.includes(tipo)) {
+    return "Analizza questo documento medico e restituisci SOLO un oggetto JSON valido senza testo aggiuntivo. Campi: nome_documento, data (YYYY-MM-DD), struttura (nome ospedale/clinica), reparto, medico_nome, specializzazione, parte_corpo, esito (diagnosi sintetica), prognosi_giorni (solo numero), num_referto, note. Lascia stringa vuota se non trovato.";
+  } else if (tipo === 'lettera') {
+    return "Analizza questa lettera assicurativa e restituisci SOLO un oggetto JSON valido senza testo aggiuntivo. Campi: nome_documento, data (YYYY-MM-DD), mittente, destinatario, oggetto, importo (numero intero euro, 0 se assente), numero_sinistro, numero_protocollo, scadenza (YYYY-MM-DD o vuoto), note (punti chiave). Lascia stringa vuota se non trovato.";
+  } else if (tipo === 'perizia') {
+    return "Analizza questa perizia e restituisci SOLO un oggetto JSON valido senza testo aggiuntivo. Campi: nome_documento, data (YYYY-MM-DD), perito (nome e titolo), struttura (studio o ente), veicolo (targa o descrizione), importo_stimato (numero intero euro), note (punti chiave). Lascia stringa vuota se non trovato.";
+  } else {
+    return "Analizza questo documento e restituisci SOLO un oggetto JSON valido senza testo aggiuntivo. Campi: nome_documento, data (YYYY-MM-DD), note (contenuto principale). Lascia stringa vuota se non trovato.";
+  }
+}
+
+function estraiJSON(testo) {
+  try {
+    // Prova parse diretto
+    return JSON.parse(testo.trim());
+  } catch {
+    // Cerca JSON tra ```
+    const match = testo.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (match) {
+      try { return JSON.parse(match[1].trim()); } catch {}
+    }
+    // Cerca { ... }
+    const match2 = testo.match(/\{[\s\S]*\}/);
+    if (match2) {
+      try { return JSON.parse(match2[0]); } catch {}
+    }
+    return null;
+  }
+}
+
+function compilaCampi(json) {
+  const tipo = document.getElementById('doc-tipo').value;
+  const medici = ['ps','rx','tac','rmn','eco','visita','referto','ml'];
+
+  // Campi comuni
+  if (json.nome_documento && !document.getElementById('doc-nome').value) {
+    setValoreAI('doc-nome', json.nome_documento);
+  }
+  if (json.data) setValoreAI('doc-data', json.data);
+
+  if (medici.includes(tipo) && json) {
+    // Assicura che i campi medici siano visibili
+    document.getElementById('campi-medici').style.display = 'contents';
+    if (json.struttura)          setValoreAI('doc-struttura', json.struttura);
+    if (json.reparto)            setValoreAI('doc-reparto', json.reparto);
+    if (json.medico_nome)        setValoreAI('doc-medico-nome', json.medico_nome);
+    if (json.specializzazione)   setValoreAI('doc-specializ', json.specializzazione);
+    if (json.esito)              setValoreAI('doc-esito', json.esito);
+    if (json.prognosi_giorni)    setValoreAI('doc-prognosi', json.prognosi_giorni);
+    if (json.num_referto)        setValoreAI('doc-num-referto', json.num_referto);
+    if (json.note)               setValoreAI('doc-note', json.note);
+    // Parte corpo — prova a matchare con le opzioni del select
+    if (json.parte_corpo) {
+      const sel = document.getElementById('doc-parte');
+      const parteLower = json.parte_corpo.toLowerCase();
+      let matched = false;
+      for (let opt of sel.options) {
+        if (opt.value && opt.text.toLowerCase().includes(parteLower.split(' ')[0])) {
+          sel.value = opt.value; matched = true; break;
+        }
+      }
+      if (!matched) {
+        // Aggiungi opzione custom
+        const opt = new Option(json.parte_corpo, json.parte_corpo);
+        sel.add(opt); sel.value = json.parte_corpo;
+      }
+      marcaAI('doc-parte');
+    }
+  }
+
+  if (tipo === 'lettera' && json) {
+    const note = [json.mittente&&('Da: '+json.mittente), json.oggetto, json.scadenza&&('Scadenza: '+json.scadenza), json.note].filter(Boolean).join(' — ');
+    if (note) setValoreAI('doc-note', note);
+    if (json.numero_protocollo) setValoreAI('doc-num-referto', json.numero_protocollo);
+    // Se c'è un importo, lo mettiamo nelle note
+  }
+
+  if (tipo === 'perizia' && json) {
+    if (json.perito)   setValoreAI('doc-medico-nome', json.perito);
+    if (json.struttura) setValoreAI('doc-struttura', json.struttura);
+    if (json.note)      setValoreAI('doc-note', json.note);
+    document.getElementById('campi-medici').style.display = 'contents';
+  }
+}
+
+function setValoreAI(id, valore) {
+  const el = document.getElementById(id);
+  if (!el || !valore) return;
+  el.value = valore;
+  el.style.background = '#F0FBF0';
+  el.style.borderColor = 'var(--gnb)';
+  marcaAI(id);
+}
+
+function marcaAI(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.style.background = '#F0FBF0';
+  el.style.borderColor = 'var(--gnb)';
+}
+
+// ═══════════════════════════════════════════════════════
+// MODALI
+// ═══════════════════════════════════════════════════════
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.addEventListener('click', e => { if(e.target.classList.contains('modal-ov')) e.target.classList.remove('open'); });
+</script>
+</body>
+</html>

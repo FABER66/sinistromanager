@@ -985,13 +985,13 @@ async function doLogin() {
       ruolo: profilo?.ruolo || 'collab',
       ini:   ini(profilo?.nome || email)
     };
-    avviaApp();
+    initApp();
   } catch(e) {
     // Fallback demo locale
     const u = USERS[email];
     if (u && u.pwd === pwd) {
       currentUser = {...u, email};
-      avviaApp();
+      initApp();
     } else {
       document.getElementById('lerr').style.display = 'block';
       btn.disabled = false;
@@ -1045,6 +1045,7 @@ function initApp() {
     goTo('dashboard');
   });
 }
+const avviaApp = initApp; // alias globale
 
 
 // ═══════════════════════════════════════════════════════

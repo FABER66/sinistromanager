@@ -204,6 +204,110 @@ tbody tr{cursor:pointer}
 .upload-area:hover{border-color:var(--ac);background:var(--acl)}
 .upload-area input{display:none}
 .adm{display:none}
+
+/* ── RESPONSIVE MOBILE ── */
+.hamburger{ display:none; }
+
+@media(max-width:768px){
+  :root{ --sw:0px; }
+
+  /* Sidebar mobile: nascosta di default, overlay */
+  .sidebar{
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    width:280px;
+    z-index:300;
+    box-shadow:4px 0 20px rgba(0,0,0,.15);
+  }
+  .sidebar.open{ transform:translateX(0); }
+
+  /* Overlay scuro quando sidebar aperta */
+  .sb-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.4);
+    z-index:299;
+  }
+  .sb-overlay.open{ display:block; }
+
+  /* Main a larghezza piena */
+  .main{ margin-left:0; }
+
+  /* Topbar con hamburger */
+  .topbar{ padding:10px 16px; }
+  .topbar-title{ font-size:15px; }
+  .hamburger{
+    display:flex;flex-direction:column;gap:5px;
+    background:none;border:none;cursor:pointer;padding:4px;
+    margin-right:10px;flex-shrink:0;
+  }
+  .hamburger span{
+    display:block;width:22px;height:2px;
+    background:var(--tx);border-radius:2px;transition:all .2s;
+  }
+
+  /* Content padding ridotto */
+  .content{ padding:14px 14px; }
+
+  /* Griglia metriche: 2 colonne */
+  .g4{ grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+  .g3{ grid-template-columns:1fr 1fr; gap:8px; }
+  .g2{ grid-template-columns:1fr; gap:12px; }
+
+  /* Card */
+  .card{ padding:14px; margin-bottom:10px; }
+
+  /* Form griglia: 1 colonna */
+  .fgrid{ grid-template-columns:1fr; }
+  .fg.full{ grid-column:1; }
+
+  /* Tabella: scroll orizzontale */
+  .tw{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table{ min-width:500px; font-size:12px; }
+  td,th{ padding:7px 8px; }
+
+  /* Pratica card mobile */
+  .pratica-card{
+    grid-template-columns:1fr auto;
+    grid-template-rows:auto auto;
+    gap:6px;
+  }
+  .pc-num{ font-size:13px; min-width:auto; }
+  .pc-fase{ display:none; }
+
+  /* Steps: solo icone */
+  .steps{ overflow-x:auto; padding-bottom:4px; }
+  .step span:not(.step-circle){ display:none; }
+  .step-line{ min-width:16px; }
+
+  /* Modal a schermo pieno su mobile */
+  .modal{
+    width:100%;max-width:100%;
+    height:100dvh;max-height:100dvh;
+    border-radius:0;
+    display:flex;flex-direction:column;
+  }
+  .modal-lg{ width:100%; }
+  .mbody{ flex:1;overflow-y:auto; }
+
+  /* Login card */
+  .lcard{ width:92vw; padding:36px 24px; }
+
+  /* Doc grid: 2 colonne */
+  .doc-grid{ grid-template-columns:1fr 1fr; }
+
+  /* Topbar actions: solo icone o nascoste */
+  .tact .btn{ padding:5px 10px; font-size:12px; }
+
+  /* Det badges scroll */
+  #det-badges{ overflow-x:auto; flex-wrap:nowrap; }
+}
+
+@media(max-width:400px){
+  .g4{ grid-template-columns:1fr; }
+  .doc-grid{ grid-template-columns:1fr; }
+  .lcard{ padding:28px 18px; }
+}
 /* AI LETTURA */
 .ai-loading{background:var(--acl);border:1px solid var(--ac);color:var(--ac);display:flex;align-items:center;gap:10px}
 .ai-ok{background:var(--gnl);border:1px solid var(--gnb);color:var(--gn)}
@@ -231,7 +335,8 @@ tbody tr{cursor:pointer}
 
 <!-- APP -->
 <div id="app">
-  <aside class="sidebar">
+  <div class="sb-overlay" id="sb-overlay" onclick="toggleSidebar()"></div>
+  <aside class="sidebar" id="sidebar-main">
     <div class="sb-brand">
       <div class="sb-brand-name">SinistroManager</div>
       <div class="sb-brand-tag">Infortunistica Stradale</div>
@@ -264,7 +369,12 @@ tbody tr{cursor:pointer}
 
   <main class="main">
     <div class="topbar">
-      <div class="topbar-title" id="page-title">Dashboard</div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <button class="hamburger" id="hamburger-btn" onclick="toggleSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title" id="page-title">Dashboard</div>
+      </div>
       <div class="tact" id="page-act"></div>
     </div>
     <div class="content">

@@ -368,8 +368,55 @@ tbody tr{cursor:pointer}
               </select>
             </div>
             <div class="fg"><label class="flbl">Targa veicolo assistito</label><input type="text" class="fi" id="n-targa" placeholder="AB123CD" style="text-transform:uppercase" oninput="cercaConflitti('targa')"></div>
-            <div class="fg"><label class="flbl">Compagnia assicurativa assistito</label><input type="text" class="fi" id="n-ass-ass"></div>
-            <div class="fg"><label class="flbl">N° polizza assistito</label><input type="text" class="fi" id="n-polizza"></div>
+            <div class="fg"><label class="flbl">Compagnia assicurativa RC assistito</label><input type="text" class="fi" id="n-ass-ass"></div>
+            <div class="fg"><label class="flbl">N° polizza RC assistito</label><input type="text" class="fi" id="n-polizza"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="ct">Polizza infortuni personali assistito</div>
+          <div style="background:var(--acl);border-radius:var(--rs);padding:10px 14px;margin-bottom:14px;font-size:12px;color:var(--ac)">
+            Verifica se il cliente ha una polizza infortuni propria — spesso copre invalidità e spese mediche indipendentemente dalla colpa.
+          </div>
+          <div class="fgrid">
+            <div class="fg">
+              <label class="flbl">Ha polizza infortuni personali?</label>
+              <select class="fsel" id="n-has-inf" onchange="togglePolizzaInfortuni()">
+                <option value="no">No / Non lo sa</option>
+                <option value="si">Sì</option>
+                <option value="verifica">Da verificare</option>
+              </select>
+            </div>
+            <div class="fg" id="inf-compagnia-wrap" style="display:none">
+              <label class="flbl">Compagnia infortuni</label>
+              <input type="text" class="fi" id="n-inf-compagnia" placeholder="es. Generali, UnipolSai...">
+            </div>
+            <div class="fg" id="inf-polizza-wrap" style="display:none">
+              <label class="flbl">N° polizza infortuni</label>
+              <input type="text" class="fi" id="n-inf-polizza">
+            </div>
+            <div class="fg" id="inf-massimale-wrap" style="display:none">
+              <label class="flbl">Massimale (€)</label>
+              <input type="number" class="fi" id="n-inf-massimale" min="0" placeholder="es. 100000">
+            </div>
+            <div class="fg" id="inf-copertura-wrap" style="display:none">
+              <label class="flbl">Copre questo sinistro?</label>
+              <select class="fsel" id="n-inf-copertura">
+                <option value="si">Sì</option>
+                <option value="no">No</option>
+                <option value="verifica">Da verificare con broker</option>
+              </select>
+            </div>
+            <div class="fg full" id="inf-note-wrap" style="display:none">
+              <label class="flbl">Note polizza infortuni</label>
+              <textarea class="fta" id="n-inf-note" placeholder="Franchigie, esclusioni, broker di riferimento..." style="min-height:50px"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="display:none"><!-- placeholder chiusura --></div>
+        <div style="display:none">
+          <div class="fgrid">
           </div>
         </div>
 
@@ -379,9 +426,15 @@ tbody tr{cursor:pointer}
           <div class="fgrid">
             <div class="fg"><label class="flbl">Nome controparte</label><input type="text" class="fi" id="n-cp-nome" placeholder="Nome" oninput="cercaConflitti('controparte')"></div>
             <div class="fg"><label class="flbl">Cognome controparte</label><input type="text" class="fi" id="n-cp-cognome" placeholder="Cognome" oninput="cercaConflitti('controparte')"></div>
-            <div class="fg"><label class="flbl">Targa controparte</label><input type="text" class="fi" id="n-cp-targa" placeholder="AB123CD" style="text-transform:uppercase" oninput="cercaConflitti('targa-cp')"></div>
-            <div class="fg"><label class="flbl">Compagnia assicurativa controparte</label><input type="text" class="fi" id="n-cp-ass"></div>
-            <div class="fg full"><label class="flbl">N° sinistro assicurazione controparte</label><input type="text" class="fi" id="n-cp-sinistro"></div>
+            <div class="fg"><label class="flbl">Codice fiscale controparte</label><input type="text" class="fi" id="n-cp-cf" placeholder="RSSMRA80A01H501U" style="text-transform:uppercase"></div>
+            <div class="fg"><label class="flbl">Targa veicolo controparte</label><input type="text" class="fi" id="n-cp-targa" placeholder="AB123CD" style="text-transform:uppercase" oninput="cercaConflitti('targa-cp')"></div>
+            <div class="fg"><label class="flbl">Compagnia RC controparte</label><input type="text" class="fi" id="n-cp-ass" placeholder="es. Generali, AXA..."></div>
+            <div class="fg"><label class="flbl">N° polizza RC controparte</label><input type="text" class="fi" id="n-cp-polizza" placeholder="Numero polizza"></div>
+            <div class="fg"><label class="flbl">N° sinistro aperto da controparte</label><input type="text" class="fi" id="n-cp-sinistro" placeholder="es. GEN-2026-00123"></div>
+            <div class="fg"><label class="flbl">Massimale RC controparte (€)</label><input type="number" class="fi" id="n-cp-massimale" min="0" placeholder="es. 1500000"></div>
+            <div class="fg"><label class="flbl">Liquidatore assegnato</label><input type="text" class="fi" id="n-cp-liquidatore" placeholder="Nome liquidatore assicurazione"></div>
+            <div class="fg"><label class="flbl">Agenzia / Broker controparte</label><input type="text" class="fi" id="n-cp-agenzia" placeholder="Agenzia assicurativa"></div>
+            <div class="fg full"><label class="flbl">Note assicurazione controparte</label><textarea class="fta" id="n-cp-note-ass" placeholder="Franchigie, limitazioni copertura, contatti..." style="min-height:50px"></textarea></div>
           </div>
         </div>
 
@@ -1340,8 +1393,11 @@ function renderDettaglio() {
     '<table style="font-size:12px;width:100%;border-collapse:collapse">' +
     '<tr><td style="color:var(--tx3);padding:4px 0;width:40%">Controparte</td><td style="padding:4px 0;font-weight:700">' + p.controparte.nome + ' ' + p.controparte.cognome + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Targa controparte</td><td style="padding:4px 0">' + (p.controparte.targa||'—') + '</td></tr>' +
-    '<tr><td style="color:var(--tx3);padding:4px 0">Ass. controparte</td><td style="padding:4px 0">' + (p.controparte.assicurazione||'—') + '</td></tr>' +
-    '<tr><td style="color:var(--tx3);padding:4px 0">N° sinistro ass.</td><td style="padding:4px 0">' + (p.controparte.sinistro||'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">RC controparte</td><td style="padding:4px 0">' + (p.controparte.assicurazione||'—') + (p.controparte.polizza?' · '+p.controparte.polizza:'') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">N° sinistro</td><td style="padding:4px 0">' + (p.controparte.sinistro||'—') + '</td></tr>' +
+    (p.controparte.massimale?'<tr><td style="color:var(--tx3);padding:4px 0">Massimale RC</td><td style="padding:4px 0">€ '+parseInt(p.controparte.massimale).toLocaleString("it-IT")+'</td></tr>':'') +
+    (p.controparte.liquidatore?'<tr><td style="color:var(--tx3);padding:4px 0">Liquidatore</td><td style="padding:4px 0;font-weight:700">'+p.controparte.liquidatore+'</td></tr>':'') +
+    (p.infortuni&&p.infortuni.ha_polizza==='si'?'<tr><td style="color:var(--tx3);padding:4px 0">Infortuni personali</td><td style="padding:4px 0"><span style="color:var(--gn);font-weight:700">✓ '+p.infortuni.compagnia+'</span>' + (p.infortuni.massimale?' · €'+parseInt(p.infortuni.massimale).toLocaleString("it-IT"):'') + '</td></tr>':p.infortuni&&p.infortuni.ha_polizza==='verifica'?'<tr><td style="color:var(--tx3);padding:4px 0">Infortuni personali</td><td style="padding:4px 0"><span style="color:var(--am);font-weight:700">⚠ Da verificare</span></td></tr>':'') +
     '<tr><td style="color:var(--tx3);padding:4px 0">CF assistito</td><td style="padding:4px 0;font-family:monospace">' + (p.assistito.cf||'—') + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Telefono</td><td style="padding:4px 0">' + (p.assistito.tel||'—') + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Collaboratore</td><td style="padding:4px 0">' + (p.collab?USERS[p.collab]?.nome:'—') + '</td></tr>' +
@@ -1504,6 +1560,14 @@ function salvaFase() {
 // ═══════════════════════════════════════════════════════
 // NUOVA PRATICA + CONTROLLO CONFLITTI IN TEMPO REALE
 // ═══════════════════════════════════════════════════════
+function togglePolizzaInfortuni() {
+  const val = document.getElementById('n-has-inf').value;
+  const mostra = val === 'si' || val === 'verifica';
+  ['inf-compagnia-wrap','inf-polizza-wrap','inf-massimale-wrap','inf-copertura-wrap','inf-note-wrap'].forEach(id => {
+    document.getElementById(id).style.display = mostra ? 'flex' : 'none';
+  });
+}
+
 let conflittoTimeout = null;
 
 function cercaConflitti(tipo) {
@@ -1558,10 +1622,23 @@ function salvaPratica() {
     controparte:{
       nome:          document.getElementById('n-cp-nome').value,
       cognome:       document.getElementById('n-cp-cognome').value,
-      cf:            '',
+      cf:            (document.getElementById('n-cp-cf')?.value||'').toUpperCase(),
       targa:         document.getElementById('n-cp-targa').value.toUpperCase(),
       assicurazione: document.getElementById('n-cp-ass').value,
+      polizza:       document.getElementById('n-cp-polizza')?.value||'',
       sinistro:      document.getElementById('n-cp-sinistro').value,
+      massimale:     document.getElementById('n-cp-massimale')?.value||'',
+      liquidatore:   document.getElementById('n-cp-liquidatore')?.value||'',
+      agenzia:       document.getElementById('n-cp-agenzia')?.value||'',
+      note_ass:      document.getElementById('n-cp-note-ass')?.value||'',
+    },
+    infortuni:{
+      ha_polizza:   document.getElementById('n-has-inf').value,
+      compagnia:    document.getElementById('n-inf-compagnia')?.value||'',
+      polizza:      document.getElementById('n-inf-polizza')?.value||'',
+      massimale:    document.getElementById('n-inf-massimale')?.value||'',
+      copertura:    document.getElementById('n-inf-copertura')?.value||'',
+      note:         document.getElementById('n-inf-note')?.value||'',
     },
     danno:{
       fisico:    document.getElementById('n-danno-fisico').checked,

@@ -2075,7 +2075,8 @@ function eliminaDoc(id) {
 // AI LETTURA DOCUMENTI
 // ═══════════════════════════════════════════════════════
 
-const CLAUDE_KEY = 'YOUR_API_KEY'; // sostituire con chiave reale o proxy
+// La chiave AI vive solo lato server (Vercel env GEMINI_API_KEY).
+// Il browser chiama il proxy autenticato /api/analizza con il token di sessione.
 
 function gestisciDrop(e) {
   e.preventDefault();
@@ -2114,37 +2115,23 @@ async function caricaEAnalizza(input) {
     const prompt = buildPrompt(tipo);
     const mediaType = file.type || 'application/pdf';
 
-    // Chiama Claude API
-    const risposta = await fetch('https://api.anthropic.com/v1/messages', {
+    // Token della sessione Supabase corrente (richiesto dal proxy)
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) throw new Error('Sessione scaduta, rieffettua il login');
+
+    // Chiama il proxy server-side autenticato (la chiave Gemini resta sul server)
+    const risposta = await fetch('/api/analizza', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': CLAUDE_KEY,
-        'anthropic-version': '2023-06-01'
+        'Authorization': 'Bearer ' + session.access_token
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: [
-            {
-              type: mediaType.startsWith('image') ? 'image' : 'document',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64
-              }
-            },
-            { type: 'text', text: prompt }
-          ]
-        }]
-      })
+      body: JSON.stringify({ base64, mediaType, prompt })
     });
 
     if (!risposta.ok) throw new Error('API error: ' + risposta.status);
     const data = await risposta.json();
-    const testo = data.content[0]?.text || '';
+    const testo = data.testo || '';
 
     // Parsa JSON dalla risposta
     const json = estraiJSON(testo);

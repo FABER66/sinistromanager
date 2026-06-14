@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SinistroManager</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- backend: Cloudflare Pages Functions (/api/*) + D1 + R2 -->
 <style>
 :root{
   --bg:#F4F2EE;--sur:#FFFFFF;--brd:#DDD9D0;--brd2:#B8B2A7;
@@ -329,7 +329,7 @@ tbody tr{cursor:pointer}
     <label>Password</label><input type="password" id="l-pwd" placeholder="••••••••">
     <button class="lbtn" id="l-btn" onclick="doLogin()">Accedi</button>
     <div class="lerr" id="lerr">Email o password non corrette</div>
-    <div class="lhint">Admin: admin@studio.it / admin123<br>Collaboratore: collab@studio.it / collab123</div>
+    <div class="lhint">Accesso riservato allo studio</div>
   </div>
 </div>
 
@@ -818,12 +818,10 @@ tbody tr{cursor:pointer}
 
 <script>
 // ═══════════════════════════════════════════════════════
-// DATI DEMO (sessione 1 — senza database)
+// COLLABORATORI (mappa email→profilo per visualizzazione nomi).
+// Popolata dal server in futuro; vuota all'avvio (nessuna credenziale nel client).
 // ═══════════════════════════════════════════════════════
-const USERS = {
-  'admin@studio.it':  {pwd:'admin123',  nome:'Avv. Fabrizio S.', ruolo:'admin',  ini:'FS'},
-  'collab@studio.it': {pwd:'collab123', nome:'Marco Bianchi',    ruolo:'collab', ini:'MB'}
-};
+const USERS = {};
 
 const FASI = [
   {id:'apertura', label:'Apertura',    short:'1'},
@@ -932,12 +930,16 @@ const RUOLO_BADGE = {danneggiato:'bg',responsabile:'br',terzo:'bb',pedone:'ba'};
 
 
 // ═══════════════════════════════════════════════════════
-// SUPABASE CONFIG
+// API CLIENT (Cloudflare Pages Functions)
 // ═══════════════════════════════════════════════════════
-const SB_URL = 'https://odacsbteoptwajgpstgo.supabase.co';
-const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kYWNzYnRlb3B0d2FqZ3BzdGdvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyMDk2NjYsImV4cCI6MjA5MDc4NTY2Nn0.mNGEytWVQCCqVl5zcb11MxqZXydtCcZjr-8xrP9GwO8';
-const { createClient } = supabase;
-const sb = createClient(SB_URL, SB_KEY);
+async function api(path, { method = 'GET', body, raw } = {}) {
+  const opts = { method, credentials: 'same-origin', headers: {} };
+  if (body !== undefined) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  const res = await fetch('/api/' + path, opts);
+  if (raw) return res;
+  if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || ('HTTP ' + res.status)); }
+  return res.json();
+}
 
 // ═══════════════════════════════════════════════════════
 // SUPABASE CRUD
@@ -945,179 +947,32 @@ const sb = createClient(SB_URL, SB_KEY);
 
 async function caricaDatiFirebase() {
   try {
-    const { data, error } = await sb.from('sin_pratiche').select('*').order('created_at', {ascending: false});
-    if (error) throw error;
-    if (data && data.length > 0) {
-      // Converti formato DB in formato app
-      const ids = data.map(p => p.id);
-      // Carica corrispondenza, documenti, timeline in parallelo
-      const [corrRes, docRes, tlRes] = await Promise.all([
-        sb.from('sin_corrispondenza').select('*').in('pratica_id', ids),
-        sb.from('sin_documenti').select('*').in('pratica_id', ids),
-        sb.from('sin_timeline').select('*').in('pratica_id', ids).order('data', {ascending: true})
-      ]);
-      const corrMap = {}, docMap = {}, tlMap = {};
-      ids.forEach(id => { corrMap[id]=[]; docMap[id]=[]; tlMap[id]=[]; });
-      (corrRes.data||[]).forEach(r => corrMap[r.pratica_id]?.push({
-        data:r.data, dir:r.direzione, oggetto:r.oggetto,
-        importo:r.importo||0, proto:r.protocollo, note:r.note
-      }));
-      (docRes.data||[]).forEach(r => docMap[r.pratica_id]?.push({
-        id:r.id, tipo:r.tipo, nome:r.nome, data:r.data, note:r.note,
-        hasFile:r.has_file, fileUrl:r.file_url,
-        medico: r.med_struttura ? {
-          struttura:r.med_struttura, reparto:r.med_reparto,
-          nome:r.med_medico, specializ:r.med_specializ,
-          parte:r.med_parte, esito:r.med_esito,
-          prognosi:r.med_prognosi, num_referto:r.med_num_referto
-        } : null
-      }));
-      (tlRes.data||[]).forEach(r => tlMap[r.pratica_id]?.push({
-        data:r.data, titolo:r.titolo, desc:r.descrizione
-      }));
-      pratiche = data.map(p => ({
-        id: p.id, data: p.data, ora: p.ora, luogo: p.luogo,
-        tipo: p.tipo, forze: p.forze, fase: p.fase, note: p.note,
-        assistito: {
-          nome:p.ass_nome, cognome:p.ass_cognome, cf:p.ass_cf,
-          tel:p.ass_tel, email:p.ass_email, ruolo:p.ass_ruolo,
-          targa:p.ass_targa, assicurazione:p.ass_assicurazione, polizza:p.ass_polizza
-        },
-        controparte: {
-          nome:p.cp_nome||'', cognome:p.cp_cognome||'', cf:p.cp_cf||'',
-          targa:p.cp_targa||'', assicurazione:p.cp_assicurazione||'', sinistro:p.cp_sinistro||''
-        },
-        danno: {fisico:p.danno_fisico, materiale:p.danno_materiale, morale:p.danno_morale},
-        collab: p.collab_id||'',
-        perizia: {
-          perito:p.perizia_perito||'', data_nomina:p.perizia_data_nomina||'',
-          data_sopralluogo:p.perizia_data_sopralluogo||'',
-          importo_stimato:p.perizia_importo||0, note:p.perizia_note||''
-        },
-        medico: {
-          medico:p.ml_medico||'', data_nomina:p.ml_data_nomina||'',
-          data_visita:p.ml_data_visita||'', invalidita:p.ml_invalidita||'',
-          lesioni:p.ml_lesioni||'', note:p.ml_note||''
-        },
-        corrispondenza: corrMap[p.id]||[],
-        documenti:      docMap[p.id]||[],
-        timeline:       tlMap[p.id]||[]
-      }));
-    }
+    const { pratiche: rows } = await api('data');
+    pratiche = rows || [];
   } catch(e) {
-    console.warn('Supabase non disponibile, uso dati demo:', e.message);
+    console.warn('Caricamento dati:', e.message);
   }
 }
 
 async function salvaPraticaFirebase(pratica) {
-  try {
-    const { error } = await sb.from('sin_pratiche').upsert({
-      id: pratica.id, data: pratica.data, ora: pratica.ora,
-      luogo: pratica.luogo, tipo: pratica.tipo, forze: pratica.forze,
-      ass_nome: pratica.assistito.nome, ass_cognome: pratica.assistito.cognome,
-      ass_cf: pratica.assistito.cf, ass_tel: pratica.assistito.tel,
-      ass_email: pratica.assistito.email, ass_ruolo: pratica.assistito.ruolo,
-      ass_targa: pratica.assistito.targa,
-      ass_assicurazione: pratica.assistito.assicurazione,
-      ass_polizza: pratica.assistito.polizza,
-      cp_nome: pratica.controparte.nome, cp_cognome: pratica.controparte.cognome,
-      cp_targa: pratica.controparte.targa,
-      cp_assicurazione: pratica.controparte.assicurazione,
-      cp_sinistro: pratica.controparte.sinistro,
-      danno_fisico: pratica.danno.fisico,
-      danno_materiale: pratica.danno.materiale,
-      danno_morale: pratica.danno.morale,
-      fase: pratica.fase, note: pratica.note,
-      updated_at: new Date().toISOString()
-    });
-    if (error) throw error;
-    // Salva timeline
-    if (pratica.timeline?.length > 0) {
-      await sb.from('sin_timeline').delete().eq('pratica_id', pratica.id);
-      await sb.from('sin_timeline').insert(
-        pratica.timeline.map(t => ({
-          pratica_id: pratica.id, data: t.data,
-          titolo: t.titolo, descrizione: t.desc
-        }))
-      );
-    }
-  } catch(e) { console.warn('Salvataggio pratica:', e.message); }
+  try { await api('pratiche', { method: 'POST', body: pratica }); }
+  catch(e) { console.warn('Salvataggio pratica:', e.message); }
 }
 
 async function aggiornaPraticaFirebase(id, dati) {
-  try {
-    const p = pratiche.find(x => x.id === id);
-    if (!p) return;
-    // Aggiorna fase e dati perizia/medico
-    const update = { updated_at: new Date().toISOString() };
-    if (dati.fase) update.fase = dati.fase;
-    if (dati.perizia) {
-      update.perizia_perito = dati.perizia.perito;
-      update.perizia_data_nomina = dati.perizia.data_nomina||null;
-      update.perizia_data_sopralluogo = dati.perizia.data_sopralluogo||null;
-      update.perizia_importo = dati.perizia.importo_stimato||0;
-      update.perizia_note = dati.perizia.note;
-    }
-    if (dati.medico) {
-      update.ml_medico = dati.medico.medico;
-      update.ml_data_nomina = dati.medico.data_nomina||null;
-      update.ml_data_visita = dati.medico.data_visita||null;
-      update.ml_invalidita = dati.medico.invalidita;
-      update.ml_lesioni = dati.medico.lesioni;
-    }
-    await sb.from('sin_pratiche').update(update).eq('id', id);
-    // Aggiorna timeline
-    if (dati.timeline) {
-      await sb.from('sin_timeline').delete().eq('pratica_id', id);
-      await sb.from('sin_timeline').insert(
-        dati.timeline.map(t => ({pratica_id:id, data:t.data, titolo:t.titolo, descrizione:t.desc}))
-      );
-    }
-    // Aggiorna corrispondenza
-    if (dati.corrispondenza) {
-      await sb.from('sin_corrispondenza').delete().eq('pratica_id', id);
-      if (dati.corrispondenza.length > 0) {
-        await sb.from('sin_corrispondenza').insert(
-          dati.corrispondenza.map(c => ({
-            pratica_id:id, data:c.data, direzione:c.dir,
-            oggetto:c.oggetto, importo:c.importo||0,
-            protocollo:c.proto, note:c.note
-          }))
-        );
-      }
-    }
-    // Aggiorna documenti
-    if (dati.documenti) {
-      await sb.from('sin_documenti').delete().eq('pratica_id', id);
-      if (dati.documenti.length > 0) {
-        await sb.from('sin_documenti').insert(
-          dati.documenti.map(d => ({
-            id: d.id, pratica_id: id, tipo: d.tipo, nome: d.nome,
-            data: d.data||null, note: d.note||null,
-            has_file: d.hasFile||false, file_url: d.fileUrl||null,
-            file_nome: d.file||null,
-            med_struttura: d.medico?.struttura||null,
-            med_reparto:   d.medico?.reparto||null,
-            med_medico:    d.medico?.nome||null,
-            med_specializ: d.medico?.specializ||null,
-            med_parte:     d.medico?.parte||null,
-            med_esito:     d.medico?.esito||null,
-            med_prognosi:  d.medico?.prognosi||null,
-            med_num_referto: d.medico?.num_referto||null
-          }))
-        );
-      }
-    }
-  } catch(e) { console.warn('Aggiornamento pratica:', e.message); }
+  try { await api('pratiche/' + encodeURIComponent(id), { method: 'PATCH', body: dati }); }
+  catch(e) { console.warn('Aggiornamento pratica:', e.message); }
 }
 
 async function caricaFileStorage(file, praticaId, docId) {
   try {
-    const percorso = praticaId + '/' + docId + '_' + file.name;
-    const { data, error } = await sb.storage.from('sinistro-docs').upload(percorso, file, {upsert:true});
-    if (error) throw error;
-    const { data: urlData } = sb.storage.from('sinistro-docs').getPublicUrl(percorso);
-    return { url: urlData.publicUrl, percorso, nome: file.name, tipo: file.type };
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('praticaId', praticaId);
+    fd.append('docId', docId);
+    const res = await fetch('/api/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json(); // { url, percorso, nome, tipo }
   } catch(e) {
     console.warn('Upload file:', e.message);
     return null;
@@ -1137,34 +992,18 @@ async function doLogin() {
   btn.innerHTML = '<span class="spin"></span> Accesso...';
   document.getElementById('lerr').style.display = 'none';
   try {
-    const { data, error } = await sb.auth.signInWithPassword({ email, password: pwd });
-    if (error) throw error;
-    // Carica profilo
-    const { data: profilo } = await sb.from('sin_utenti').select('*').eq('id', data.user.id).single();
-    currentUser = {
-      email,
-      uid:   data.user.id,
-      nome:  profilo?.nome || email,
-      ruolo: profilo?.ruolo || 'collab',
-      ini:   ini(profilo?.nome || email)
-    };
+    const u = await api('login', { method: 'POST', body: { email, password: pwd } });
+    currentUser = { email: u.email, uid: u.uid, nome: u.nome, ruolo: u.ruolo, ini: u.ini };
     initApp();
   } catch(e) {
-    // Fallback demo locale
-    const u = USERS[email];
-    if (u && u.pwd === pwd) {
-      currentUser = {...u, email};
-      initApp();
-    } else {
-      document.getElementById('lerr').style.display = 'block';
-      btn.disabled = false;
-      btn.textContent = 'Accedi';
-    }
+    document.getElementById('lerr').style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Accedi';
   }
 }
 
 async function doLogout() {
-  await sb.auth.signOut();
+  try { await api('logout', { method: 'POST' }); } catch(e) {}
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
@@ -2115,17 +1954,11 @@ async function caricaEAnalizza(input) {
     const prompt = buildPrompt(tipo);
     const mediaType = file.type || 'application/pdf';
 
-    // Token della sessione Supabase corrente (richiesto dal proxy)
-    const { data: { session } } = await sb.auth.getSession();
-    if (!session) throw new Error('Sessione scaduta, rieffettua il login');
-
-    // Chiama il proxy server-side autenticato (la chiave Gemini resta sul server)
+    // Chiama il proxy server-side autenticato (cookie di sessione automatico)
     const risposta = await fetch('/api/analizza', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer ' + session.access_token
-      },
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ base64, mediaType, prompt })
     });
 
@@ -2275,6 +2108,19 @@ function toggleSidebar() {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e => { if(e.target.classList.contains('modal-ov')) e.target.classList.remove('open'); });
+
+// ═══════════════════════════════════════════════════════
+// BOOT — sessione cookie valida → entra diretto, altrimenti login
+// ═══════════════════════════════════════════════════════
+(async function boot() {
+  try {
+    const u = await api('me');
+    currentUser = { email: u.email, uid: u.uid, nome: u.nome, ruolo: u.ruolo, ini: u.ini };
+    initApp();
+  } catch(e) {
+    // non autenticato: resta sullo schermo di login
+  }
+})();
 </script>
 </body>
 </html>

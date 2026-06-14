@@ -1,5 +1,31 @@
 import { getUser, json, unauthorized } from '../../_lib/auth.js';
 
+export async function onRequestDelete(context) {
+  const u = await getUser(context);
+  if (!u) return unauthorized();
+  if (u.ruolo !== 'admin') return json({ error: 'Permesso negato' }, { status: 403 });
+  const { DB, DOCS } = context.env;
+  const id = context.params.id;
+
+  // Cancella i record collegati + la pratica
+  await DB.batch([
+    DB.prepare('DELETE FROM sin_timeline WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_corrispondenza WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_documenti WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_pratiche WHERE id=?').bind(id)
+  ]);
+
+  // Pulizia file su R2 (se il bucket è attivo)
+  if (DOCS) {
+    try {
+      const list = await DOCS.list({ prefix: id + '/' });
+      if (list.objects?.length) await DOCS.delete(list.objects.map(o => o.key));
+    } catch (e) { /* R2 non disponibile: ignora */ }
+  }
+
+  return json({ ok: true });
+}
+
 export async function onRequestPatch(context) {
   const u = await getUser(context);
   if (!u) return unauthorized();

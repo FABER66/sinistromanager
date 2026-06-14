@@ -9,10 +9,10 @@ binding = "DB"
 database_name = "sinistromanager"
 database_id = "6078ebfa-67fd-475d-a12d-d9bbaba518a8"
 
-# R2 — storage documenti caricati (attivare quando il token ha lo scope R2)
-# [[r2_buckets]]
-# binding = "DOCS"
-# bucket_name = "sinistro-docs"
+# R2 — storage documenti caricati
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "sinistro-docs"
 
 # Secrets (NON qui): impostare con
 #   wrangler pages secret put GEMINI_API_KEY

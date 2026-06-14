@@ -1071,7 +1071,10 @@ function goTo(id) {
   acts.innerHTML = '';
   if (id === 'pratiche') acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="goTo(\'nuova\')">+ Nuova pratica</button>';
   if (id === 'dettaglio' && praticaCorrente) {
-    acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>`;
+    acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>` +
+      (currentUser?.ruolo === 'admin'
+        ? ` <button class="btn btn-sm" style="background:#FDECEC;color:#C0392B;border-color:#F5C6C6" onclick="eliminaPratica('${praticaCorrente.id}')">🗑 Elimina pratica</button>`
+        : '');
   }
 }
 
@@ -1249,6 +1252,23 @@ function apriDettaglio(id) {
   if (!praticaCorrente) return;
   renderDettaglio();
   goTo('dettaglio');
+}
+
+async function eliminaPratica(id) {
+  if (currentUser?.ruolo !== 'admin') return;
+  const p = pratiche.find(x => x.id === id);
+  const nome = p ? `${p.assistito?.nome||''} ${p.assistito?.cognome||''}`.trim() : id;
+  if (!confirm(`Eliminare definitivamente la pratica ${id}${nome ? ' ('+nome+')' : ''}?\n\nVengono cancellati anche corrispondenza, documenti e timeline collegati. L'operazione non è reversibile.`)) return;
+  try {
+    await api('pratiche/' + encodeURIComponent(id), { method: 'DELETE' });
+    pratiche = pratiche.filter(x => x.id !== id);
+    praticaCorrente = null;
+    renderDashboard(); renderListaPratiche(); renderConflitti(); renderReport();
+    goTo('pratiche');
+    toast('Pratica eliminata');
+  } catch(e) {
+    toast('Errore eliminazione: ' + e.message);
+  }
 }
 
 function renderDettaglio() {

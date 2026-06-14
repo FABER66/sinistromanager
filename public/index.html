@@ -1266,6 +1266,50 @@ function renderConflittoBox(risultati, soggetto) {
 // ═══════════════════════════════════════════════════════
 // DASHBOARD
 // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// SCADENZARIO AUTOMATICO — prescrizione RC (2 anni) + pratiche ferme
+// ═══════════════════════════════════════════════════════
+const GIORNI_PRESCRIZIONE = 730;   // RC auto: art. 2947 c.c.
+const SOGLIA_SCADENZA = 90;        // avviso entro 90 giorni
+const SOGLIA_FERMA = 60;           // ferma se nessun evento da 60 giorni
+
+function giorniTra(daISO, aISO) { return Math.round((new Date(aISO) - new Date(daISO)) / 86400000); }
+
+function calcolaScadenze(p) {
+  const out = [];
+  if (p.fase === 'chiusa' || !p.data) return out;
+  const oggi = new Date().toISOString().slice(0, 10);
+  // Prescrizione RC: 2 anni dal sinistro
+  const presc = new Date(p.data); presc.setFullYear(presc.getFullYear() + 2);
+  const prescISO = presc.toISOString().slice(0, 10);
+  const gg = giorniTra(oggi, prescISO);
+  if (gg < 0) out.push({ tipo:'prescrizione', stato:'scaduta', giorni:gg, data:prescISO, label:'Prescrizione SCADUTA' });
+  else if (gg <= SOGLIA_SCADENZA) out.push({ tipo:'prescrizione', stato:'scadenza', giorni:gg, data:prescISO, label:`Prescrizione tra ${gg} giorni` });
+  // Pratica ferma: nessun evento recente
+  const eventi = (p.timeline || []).map(t => t.data).filter(Boolean).sort();
+  const ultimo = eventi.length ? eventi[eventi.length - 1] : p.data;
+  const inattiva = giorniTra(ultimo, oggi);
+  if (inattiva > SOGLIA_FERMA) out.push({ tipo:'ferma', stato:'ferma', giorni:inattiva, data:ultimo, label:`Ferma da ${inattiva} giorni` });
+  return out;
+}
+
+function avvisiScadenze() {
+  const list = [];
+  pratiche.forEach(p => calcolaScadenze(p).forEach(s => list.push({ p, ...s })));
+  const rank = { scaduta:0, scadenza:1, ferma:2 };
+  return list.sort((a,b) => (rank[a.stato]-rank[b.stato]) || (a.giorni - b.giorni));
+}
+
+function rigaAvviso(a) {
+  const col = a.stato==='scaduta' ? 'var(--rd)' : a.stato==='scadenza' ? 'var(--am)' : 'var(--tx3)';
+  const icon = a.stato==='scaduta' ? '⛔' : a.stato==='scadenza' ? '⚠️' : '⏸';
+  return `<div style="display:flex;justify-content:space-between;gap:8px;padding:9px 0;border-bottom:1px solid var(--brd);cursor:pointer" onclick="apriDettaglio('${a.p.id}')">
+    <div><div style="font-size:12px;font-weight:700;color:var(--ac)">${a.p.id}</div>
+      <div style="font-size:12px">${a.p.assistito.cognome||''} ${a.p.assistito.nome||''}</div></div>
+    <div style="text-align:right;font-size:12px;font-weight:700;color:${col}">${icon} ${a.label}</div>
+  </div>`;
+}
+
 function renderDashboard() {
   const mie = currentUser?.ruolo === 'admin' ? pratiche : pratiche.filter(p => p.collab === currentUser?.email || !p.collab);
   const attive = mie.filter(p => p.fase !== 'chiusa').length;
@@ -1278,10 +1322,17 @@ function renderDashboard() {
     if (r.length > 0) nConflitti++;
   });
 
+  const avvisi = avvisiScadenze();
   document.getElementById('d-attive').textContent    = attive;
-  document.getElementById('d-pending').textContent   = mie.filter(p=>p.fase==='offerta').length;
+  document.getElementById('d-pending').textContent   = avvisi.length;
   document.getElementById('d-conflitti').textContent = nConflitti;
   document.getElementById('d-chiuse').textContent    = chiuse;
+
+  // Scadenzario: prescrizioni imminenti/scadute + pratiche ferme
+  const scadEl = document.getElementById('dash-scadenze');
+  if (scadEl) scadEl.innerHTML = avvisi.length
+    ? avvisi.slice(0, 8).map(rigaAvviso).join('')
+    : '<div style="font-size:12px;color:var(--tx3);padding:16px 0;text-align:center">Nessuna scadenza imminente</div>';
 
   // Alert conflitti
   const alertEl = document.getElementById('dash-conflict-alert');
@@ -1420,15 +1471,23 @@ function renderDettaglio() {
     danni.map(d=>`<span class="badge bgr">${d}</span>`).join('') +
     (p.forze!=='no'?`<span class="badge bb">Forze: ${p.forze}</span>`:'');
 
-  // Conflitti banner
+  // Scadenze + Conflitti banner
   const conflitti = trovaConflitti(p.assistito.nome, p.assistito.cognome, p.assistito.cf, p.assistito.targa, p.id);
   const bannerEl = document.getElementById('det-conflict-banner');
+  let bannerHtml = '';
+  const scad = calcolaScadenze(p);
+  scad.forEach(s => {
+    const isScaduta = s.stato === 'scaduta';
+    bannerHtml += `<div class="notif ${isScaduta?'n-danger':'n-warn'}" style="margin-bottom:12px">
+      ${isScaduta?'⛔':'⚠️'} <strong>${s.label}</strong>${s.data?` — ${s.tipo==='ferma'?'ultimo evento':'termine'} ${fmtData(s.data)}`:''}</div>`;
+  });
   if (conflitti.length > 0) {
-    bannerEl.innerHTML = `<div class="n-conflict" style="margin-bottom:16px">
+    bannerHtml += `<div class="n-conflict" style="margin-bottom:16px">
       <strong>⚠ Attenzione — soggetto presente in altre pratiche</strong><br>
       ${conflitti.map(r=>`· Pratica <strong>${r.pratica}</strong> come <strong>${r.ruolo==='controparte'?'Controparte':RUOLO_LABEL[r.ruolo]||r.ruolo}</strong> — ${fmtData(r.data)}`).join('<br>')}
     </div>`;
-  } else { bannerEl.innerHTML = ''; }
+  }
+  bannerEl.innerHTML = bannerHtml;
 
   // Steps
   const faseIdx = FASI.findIndex(f => f.id === p.fase);

@@ -12,6 +12,7 @@ export async function onRequestDelete(context) {
     DB.prepare('DELETE FROM sin_timeline WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_corrispondenza WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_documenti WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_preventivo_voci WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_pratiche WHERE id=?').bind(id)
   ]);
 
@@ -86,6 +87,14 @@ export async function onRequestPatch(context) {
           d.medico?.struttura || null, d.medico?.reparto || null, d.medico?.nome || null,
           d.medico?.specializ || null, d.medico?.parte || null, d.medico?.esito || null,
           d.medico?.prognosi || null, d.medico?.num_referto || null)));
+  }
+
+  // Preventivo (voci di spesa)
+  if (dati.preventivo) {
+    await DB.prepare('DELETE FROM sin_preventivo_voci WHERE pratica_id=?').bind(id).run();
+    if (dati.preventivo.length) await DB.batch(dati.preventivo.map((v, i) =>
+      DB.prepare('INSERT INTO sin_preventivo_voci (pratica_id,descrizione,importo,ordine) VALUES (?,?,?,?)')
+        .bind(id, v.descrizione || null, Number(v.importo) || 0, i)));
   }
 
   return json({ ok: true });

@@ -95,6 +95,16 @@ CREATE TABLE IF NOT EXISTS sin_timeline (
   descrizione TEXT
 );
 
+-- Preventivo pratica: voci di spesa previste (onorario, perito, bolli...)
+CREATE TABLE IF NOT EXISTS sin_preventivo_voci (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  pratica_id  TEXT NOT NULL,
+  descrizione TEXT,
+  importo     REAL DEFAULT 0,
+  ordine      INTEGER DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_prev_pratica ON sin_preventivo_voci(pratica_id);
+
 -- Prima Nota: movimenti di cassa dello studio (entrate/uscite), collegabili a una pratica
 CREATE TABLE IF NOT EXISTS sin_movimenti (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

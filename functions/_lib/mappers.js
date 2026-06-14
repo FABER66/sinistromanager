@@ -20,7 +20,11 @@ export function tlRowToApp(r) {
   return { data: r.data, titolo: r.titolo, desc: r.descrizione };
 }
 
-export function praticaRowToApp(p, corr, doc, tl) {
+export function prevRowToApp(r) {
+  return { descrizione: r.descrizione, importo: r.importo || 0 };
+}
+
+export function praticaRowToApp(p, corr, doc, tl, prev) {
   return {
     id: p.id, data: p.data, ora: p.ora, luogo: p.luogo,
     tipo: p.tipo, forze: p.forze, fase: p.fase, note: p.note,
@@ -47,7 +51,8 @@ export function praticaRowToApp(p, corr, doc, tl) {
     },
     corrispondenza: corr || [],
     documenti: doc || [],
-    timeline: tl || []
+    timeline: tl || [],
+    preventivo: prev || []
   };
 }
 

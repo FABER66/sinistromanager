@@ -669,6 +669,7 @@ tbody tr{cursor:pointer}
             </div>
           </div>
         </div>
+        <div id="det-preventivo"></div>
         <div id="det-conti"></div>
       </div>
 
@@ -1333,6 +1334,8 @@ function renderDettaglio() {
   document.getElementById('det-numero').textContent = p.id;
   document.getElementById('det-nome').textContent   = p.assistito.nome + ' ' + p.assistito.cognome;
   document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
+  const prevEl = document.getElementById('det-preventivo');
+  if (prevEl) prevEl.innerHTML = bloccoPreventivo(p);
   const contiEl = document.getElementById('det-conti');
   if (contiEl) contiEl.innerHTML = bloccoContiPratica(p.id);
 
@@ -2319,6 +2322,56 @@ function bloccoContiPratica(id) {
       <div><span style="color:var(--tx3);font-size:12px">Uscite</span><div style="font-weight:700;color:#C0392B">${eur(uscite)}</div></div>
       <div><span style="color:var(--tx3);font-size:12px">Saldo</span><div style="font-weight:700;color:${saldo<0?'#C0392B':'var(--gn)'}">${eur(saldo)}</div></div>
     </div>${tabella}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// PREVENTIVO PRATICA — voci di spesa previste
+// ═══════════════════════════════════════════════════════
+const VOCI_PREVENTIVO = ['Onorario professionale','Spese perito','Spese medico legale','Bolli e marche','Spese postali e vive','Contributo Cassa Forense 4%','Spese di trasferta'];
+
+function bloccoPreventivo(p) {
+  const voci = p.preventivo || [];
+  const tot = voci.reduce((s,v) => s + (Number(v.importo)||0), 0);
+  const righe = voci.length ? voci.map((v,i) => `<tr style="border-bottom:1px solid var(--bd)">
+      <td style="padding:8px 6px">${v.descrizione||'—'}</td>
+      <td style="padding:8px 6px;text-align:right;font-weight:700;white-space:nowrap">${eur(v.importo)}</td>
+      <td style="padding:8px 6px;text-align:right;width:30px"><button class="doc-del" onclick="eliminaVocePreventivo(${i})">×</button></td>
+    </tr>`).join('') : '<tr><td colspan="3" style="color:var(--tx3);padding:12px 0">Nessuna voce nel preventivo</td></tr>';
+  const presets = VOCI_PREVENTIVO.map(v =>
+    `<button class="badge bgr" style="cursor:pointer;border:none" onclick="document.getElementById('prev-descr').value='${v}';document.getElementById('prev-imp').focus()">${v}</button>`).join(' ');
+  return `<div class="card" style="margin-top:16px">
+    <div class="ct">Preventivo — voci di spesa</div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">${righe}
+      <tr><td style="padding:10px 6px;font-weight:700">Totale preventivo</td>
+          <td style="padding:10px 6px;text-align:right;font-weight:700;color:var(--ac)">${eur(tot)}</td><td></td></tr>
+    </table>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input class="fi" id="prev-descr" placeholder="Voce di spesa" style="flex:1;min-width:160px">
+      <input class="fi" id="prev-imp" type="number" min="0" step="0.01" placeholder="€" style="max-width:120px">
+      <button class="btn btn-p btn-sm" onclick="aggiungiVocePreventivo()">+ Aggiungi</button>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:var(--tx3)">Voci frequenti (clicca per inserire):</div>
+    <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${presets}</div>
+  </div>`;
+}
+
+function aggiungiVocePreventivo() {
+  const p = praticaCorrente; if (!p) return;
+  const d = document.getElementById('prev-descr').value.trim();
+  const imp = parseFloat(document.getElementById('prev-imp').value) || 0;
+  if (!d) { toast('Inserisci la voce di spesa'); return; }
+  p.preventivo = p.preventivo || [];
+  p.preventivo.push({ descrizione: d, importo: imp });
+  aggiornaPraticaFirebase(p.id, { preventivo: p.preventivo }).catch(()=>{});
+  renderDettaglio();
+  toast('Voce aggiunta al preventivo');
+}
+
+function eliminaVocePreventivo(i) {
+  const p = praticaCorrente; if (!p) return;
+  (p.preventivo || []).splice(i, 1);
+  aggiornaPraticaFirebase(p.id, { preventivo: p.preventivo }).catch(()=>{});
+  renderDettaglio();
 }
 
 // ═══════════════════════════════════════════════════════

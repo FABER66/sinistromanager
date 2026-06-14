@@ -1400,6 +1400,7 @@ function renderListaPratiche(filtrate) {
         <div class="pc-nome">${p.assistito.nome} ${p.assistito.cognome}</div>
         <div class="pc-det">${fmtData(p.data)} · ${p.luogo} · ${danni}</div>
         <div class="pc-det" style="margin-top:2px">Targa: ${p.assistito.targa||'—'} · Controparte: ${p.controparte.nome} ${p.controparte.cognome}</div>
+        ${(p.aggiornamenti && p.aggiornamenti[0]) ? `<div class="pc-det" style="margin-top:3px;color:var(--ac)">📝 ${fmtData(p.aggiornamenti[0].data)}: ${(p.aggiornamenti[0].testo||'').replace(/</g,'&lt;').slice(0,90)}${(p.aggiornamenti[0].testo||'').length>90?'…':''}</div>` : ''}
       </div>
       <div class="pc-fase" style="display:flex;flex-direction:column;gap:4px;align-items:center">
         <span class="badge ${RUOLO_BADGE[p.assistito.ruolo]}">${RUOLO_LABEL[p.assistito.ruolo]}</span>

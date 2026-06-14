@@ -445,6 +445,9 @@ tbody tr{cursor:pointer}
             <option value="danneggiato">Danneggiato</option>
             <option value="responsabile">Responsabile</option>
           </select>
+          <select class="fsel" id="filter-legale" onchange="filtraPratiche()" style="width:auto">
+            <option value="">Tutti i legali</option>
+          </select>
         </div>
         <div id="lista-pratiche"></div>
       </div>
@@ -691,6 +694,7 @@ tbody tr{cursor:pointer}
             </div>
           </div>
         </div>
+        <div id="det-aggiornamenti"></div>
         <div id="det-preventivo"></div>
         <div id="det-conti"></div>
       </div>
@@ -1403,25 +1407,29 @@ function renderListaPratiche(filtrate) {
       </div>
       <div class="pc-stato">
         <span class="badge ${FASE_BADGE[p.fase]}">${FASE_LABEL[p.fase]}</span>
-        ${p.collab ? `<div style="font-size:11px;color:var(--tx3);margin-top:4px">${USERS[p.collab]?.nome||p.collab}</div>` : ''}
+        ${p.legale ? `<div style="font-size:11px;color:var(--ac);margin-top:4px;font-weight:700">⚖️ ${p.legale}</div>` : ''}
+        ${p.collab ? `<div style="font-size:11px;color:var(--tx3);margin-top:2px">${USERS[p.collab]?.nome||p.collab}</div>` : ''}
       </div>
     </div>`;
   }).join('');
 }
 
 function filtraPratiche() {
-  const q     = document.getElementById('search-pratiche').value.toLowerCase();
-  const fase  = document.getElementById('filter-fase').value;
-  const ruolo = document.getElementById('filter-ruolo').value;
+  const q      = document.getElementById('search-pratiche').value.toLowerCase();
+  const fase   = document.getElementById('filter-fase').value;
+  const ruolo  = document.getElementById('filter-ruolo').value;
+  const legale = document.getElementById('filter-legale').value;
   const base  = currentUser?.ruolo === 'admin' ? pratiche : pratiche.filter(p=>p.collab===currentUser?.email||!p.collab);
   const filtrate = base.filter(p => {
     const matchQ = !q || p.id.toLowerCase().includes(q)
       || (p.assistito.nome+' '+p.assistito.cognome).toLowerCase().includes(q)
       || (p.assistito.targa||'').toLowerCase().includes(q)
+      || (p.legale||'').toLowerCase().includes(q)
       || p.luogo.toLowerCase().includes(q);
-    const matchFase  = !fase  || p.fase === fase;
-    const matchRuolo = !ruolo || p.assistito.ruolo === ruolo;
-    return matchQ && matchFase && matchRuolo;
+    const matchFase   = !fase   || p.fase === fase;
+    const matchRuolo  = !ruolo  || p.assistito.ruolo === ruolo;
+    const matchLegale = !legale || p.legale === legale;
+    return matchQ && matchFase && matchRuolo && matchLegale;
   });
   renderListaPratiche(filtrate);
 }
@@ -1465,10 +1473,16 @@ function cambiaLegale() {
 }
 
 function popolaLegali() {
-  const dl = document.getElementById('legali-list');
-  if (!dl) return;
   const legali = [...new Set(pratiche.map(p => p.legale).filter(Boolean))].sort();
-  dl.innerHTML = legali.map(l => `<option value="${l.replace(/"/g,'&quot;')}">`).join('');
+  const dl = document.getElementById('legali-list');
+  if (dl) dl.innerHTML = legali.map(l => `<option value="${l.replace(/"/g,'&quot;')}">`).join('');
+  const fl = document.getElementById('filter-legale');
+  if (fl) {
+    const cur = fl.value;
+    fl.innerHTML = '<option value="">Tutti i legali</option>' +
+      legali.map(l => `<option value="${l.replace(/"/g,'&quot;')}">${l}</option>`).join('');
+    fl.value = cur;
+  }
 }
 
 function renderDettaglio() {
@@ -1479,6 +1493,8 @@ function renderDettaglio() {
   document.getElementById('det-numero').textContent = p.id;
   document.getElementById('det-nome').textContent   = p.assistito.nome + ' ' + p.assistito.cognome;
   document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
+  const aggEl = document.getElementById('det-aggiornamenti');
+  if (aggEl) aggEl.innerHTML = bloccoAggiornamenti(p);
   const prevEl = document.getElementById('det-preventivo');
   if (prevEl) prevEl.innerHTML = bloccoPreventivo(p);
   const contiEl = document.getElementById('det-conti');
@@ -2496,6 +2512,45 @@ function bloccoContiPratica(id) {
       ${metricaEco('Spese sostenute', spese, '#C0392B')}
       ${metricaEco('Margine attuale', margine, margine<0?'#C0392B':'var(--gn)')}
     </div>${barra}${tabella}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// AGGIORNAMENTI PRATICA — diario stato/avanzamento legale
+// ═══════════════════════════════════════════════════════
+function bloccoAggiornamenti(p) {
+  const list = p.aggiornamenti || [];   // già newest-first da /api/data
+  const righe = list.length ? list.map((a,i) => `
+    <div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--brd)">
+      <div style="font-size:11px;color:var(--tx3);font-weight:700;white-space:nowrap;min-width:74px">${fmtData(a.data)}</div>
+      <div style="flex:1;font-size:13px;white-space:pre-wrap">${(a.testo||'').replace(/</g,'&lt;')}</div>
+      <button class="doc-del" onclick="eliminaAggiornamento(${i})">×</button>
+    </div>`).join('')
+    : '<div style="color:var(--tx3);padding:12px 0">Nessun aggiornamento. Annota a che punto è la pratica e di cosa si sta occupando il legale.</div>';
+  const legaleTag = p.legale ? ` <span style="font-weight:400;color:var(--ac);font-size:12px">· ⚖️ ${p.legale}</span>` : '';
+  return `<div class="card">
+    <div class="ct">Aggiornamenti pratica${legaleTag}</div>
+    <textarea class="fta" id="agg-nuovo" placeholder="A che punto è la pratica, cosa sta seguendo l'avvocato, prossimi passi..." style="min-height:60px;width:100%;margin-bottom:8px"></textarea>
+    <button class="btn btn-p btn-sm" onclick="aggiungiAggiornamento()">+ Aggiungi aggiornamento</button>
+    <div style="margin-top:12px">${righe}</div>
+  </div>`;
+}
+
+function aggiungiAggiornamento() {
+  const p = praticaCorrente; if (!p) return;
+  const t = document.getElementById('agg-nuovo').value.trim();
+  if (!t) { toast("Scrivi l'aggiornamento"); return; }
+  p.aggiornamenti = p.aggiornamenti || [];
+  p.aggiornamenti.unshift({ data: new Date().toISOString().slice(0,10), testo: t });
+  aggiornaPraticaFirebase(p.id, { aggiornamenti: p.aggiornamenti }).catch(()=>{});
+  renderDettaglio();
+  toast('Aggiornamento aggiunto');
+}
+
+function eliminaAggiornamento(i) {
+  const p = praticaCorrente; if (!p) return;
+  (p.aggiornamenti || []).splice(i, 1);
+  aggiornaPraticaFirebase(p.id, { aggiornamenti: p.aggiornamenti }).catch(()=>{});
+  renderDettaglio();
 }
 
 // ═══════════════════════════════════════════════════════

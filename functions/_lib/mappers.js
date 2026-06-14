@@ -24,7 +24,11 @@ export function prevRowToApp(r) {
   return { descrizione: r.descrizione, importo: r.importo || 0 };
 }
 
-export function praticaRowToApp(p, corr, doc, tl, prev) {
+export function aggRowToApp(r) {
+  return { id: r.id, data: r.data, testo: r.testo };
+}
+
+export function praticaRowToApp(p, corr, doc, tl, prev, agg) {
   return {
     id: p.id, data: p.data, ora: p.ora, luogo: p.luogo,
     tipo: p.tipo, forze: p.forze, fase: p.fase, note: p.note,
@@ -53,7 +57,8 @@ export function praticaRowToApp(p, corr, doc, tl, prev) {
     corrispondenza: corr || [],
     documenti: doc || [],
     timeline: tl || [],
-    preventivo: prev || []
+    preventivo: prev || [],
+    aggiornamenti: agg || []
   };
 }
 

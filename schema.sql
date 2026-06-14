@@ -96,6 +96,16 @@ CREATE TABLE IF NOT EXISTS sin_timeline (
   descrizione TEXT
 );
 
+-- Aggiornamenti pratica: diario stato/avanzamento legale
+CREATE TABLE IF NOT EXISTS sin_aggiornamenti (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  pratica_id  TEXT NOT NULL,
+  data        TEXT,
+  testo       TEXT,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_agg_pratica ON sin_aggiornamenti(pratica_id);
+
 -- Impostazioni studio (intestazione, P.IVA, regime fiscale...) — key/value
 CREATE TABLE IF NOT EXISTS sin_impostazioni (
   chiave TEXT PRIMARY KEY,

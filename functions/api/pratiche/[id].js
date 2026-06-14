@@ -13,6 +13,7 @@ export async function onRequestDelete(context) {
     DB.prepare('DELETE FROM sin_corrispondenza WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_documenti WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_preventivo_voci WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_aggiornamenti WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_pratiche WHERE id=?').bind(id)
   ]);
 
@@ -95,6 +96,14 @@ export async function onRequestPatch(context) {
     if (dati.preventivo.length) await DB.batch(dati.preventivo.map((v, i) =>
       DB.prepare('INSERT INTO sin_preventivo_voci (pratica_id,descrizione,importo,ordine) VALUES (?,?,?,?)')
         .bind(id, v.descrizione || null, Number(v.importo) || 0, i)));
+  }
+
+  // Aggiornamenti legale
+  if (dati.aggiornamenti) {
+    await DB.prepare('DELETE FROM sin_aggiornamenti WHERE pratica_id=?').bind(id).run();
+    if (dati.aggiornamenti.length) await DB.batch(dati.aggiornamenti.map(a =>
+      DB.prepare('INSERT INTO sin_aggiornamenti (pratica_id,data,testo) VALUES (?,?,?)')
+        .bind(id, a.data || null, a.testo || null)));
   }
 
   return json({ ok: true });

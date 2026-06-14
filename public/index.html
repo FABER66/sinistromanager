@@ -589,7 +589,16 @@ tbody tr{cursor:pointer}
                 <option value="">— Nessuno (gestisco io) —</option>
               </select>
             </div>
-            <div class="fg"><label class="flbl">Legale assegnatario</label><input class="fi" id="n-legale" placeholder="Avv. a cui è affidata la pratica" list="legali-list"><datalist id="legali-list"></datalist></div>
+            <div class="fg"><label class="flbl">Chi la manda (segnalatore)</label><select class="fsel" id="n-segnalatore"><option value="">— nessuno —</option></select></div>
+            <div class="fg"><label class="flbl">A chi l'affidiamo (avvocato)</label><select class="fsel" id="n-avvocato"><option value="">— nessuno —</option></select></div>
+            <div class="fg full"><label class="flbl">Provvigione segnalatore</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <select class="fsel" id="n-provv-benef" style="flex:1;min-width:140px"><option value="">— nessun beneficiario —</option></select>
+                <select class="fsel" id="n-provv-tipo" style="max-width:90px"><option value="fisso">€</option><option value="percentuale">%</option></select>
+                <input class="fi" type="number" id="n-provv-val" placeholder="valore" step="0.01" style="max-width:120px">
+              </div>
+            </div>
+            <div class="fg full"><label class="flbl">Figure sanitarie coinvolte</label><div id="n-medici" style="margin-top:4px"></div></div>
             <div class="fg full"><label class="flbl">Note iniziali</label><textarea class="fta" id="n-note" placeholder="Descrizione sinistro, prime impressioni, urgenze..."></textarea></div>
           </div>
         </div>
@@ -1267,6 +1276,7 @@ function goTo(id) {
   if (id === 'primanota') { acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="apriMovimento()">+ Movimento</button>'; renderPrimaNota(); }
   if (id === 'fatture') renderFatture();
   if (id === 'rubriche') renderRubriche();
+  if (id === 'nuova') popolaFormPratica();
   if (id === 'dettaglio' && praticaCorrente) {
     acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>` +
       (currentUser?.ruolo === 'admin'
@@ -1910,7 +1920,15 @@ function salvaPratica() {
     },
     nota:       document.getElementById('n-note').value,
     collab:     document.getElementById('n-collab').value,
-    legale:     document.getElementById('n-legale').value.trim(),
+    segnalatore_id: document.getElementById('n-segnalatore').value ? Number(document.getElementById('n-segnalatore').value) : null,
+    avvocato_id:    document.getElementById('n-avvocato').value ? Number(document.getElementById('n-avvocato').value) : null,
+    legale:     document.getElementById('n-avvocato').value ? rubNome(document.getElementById('n-avvocato').value) : '',
+    medici:     [...document.querySelectorAll('#n-medici input:checked')].map(c => Number(c.value)),
+    provv: {
+      tipo: document.getElementById('n-provv-tipo').value,
+      valore: parseFloat(document.getElementById('n-provv-val').value) || 0,
+      beneficiario_id: document.getElementById('n-provv-benef').value || null
+    },
     fase:      'apertura',
     corrispondenza: [],
     perizia:   {perito:'',data_nomina:'',data_sopralluogo:'',importo_stimato:0,note:''},
@@ -3020,6 +3038,20 @@ async function salvaPagamento() {
   if (!(body.importo>0)) { toast('Inserisci un importo'); return; }
   try { await api('pagamenti', { method:'POST', body }); await caricaPagamenti(); closeModal('m-pagamento'); renderRubriche(); toast('Pagamento registrato'); }
   catch(e){ toast('Errore: '+e.message); }
+}
+
+// popola i select/checkbox del form Nuova pratica dalle rubriche
+function popolaFormPratica() {
+  const opt = (arr, sp) => arr.map(r => `<option value="${r.id}">${r.nome}${sp&&r.specializzazione?' ('+r.specializzazione+')':''}</option>`).join('');
+  const benef = rubrica.filter(r => r.tipo==='segnalatore' || r.tipo==='collaboratore');
+  const sSeg = document.getElementById('n-segnalatore'); if (sSeg) sSeg.innerHTML = '<option value="">— nessuno —</option>' + opt(rubByTipo('segnalatore'));
+  const sAvv = document.getElementById('n-avvocato');    if (sAvv) sAvv.innerHTML = '<option value="">— nessuno —</option>' + opt(rubByTipo('avvocato'));
+  const sBen = document.getElementById('n-provv-benef');  if (sBen) sBen.innerHTML = '<option value="">— nessun beneficiario —</option>' + opt(benef);
+  const med = rubByTipo('medico');
+  const dMed = document.getElementById('n-medici');
+  if (dMed) dMed.innerHTML = med.length
+    ? med.map(m => `<label style="display:inline-flex;gap:5px;align-items:center;margin:0 12px 6px 0;font-size:12px;cursor:pointer"><input type="checkbox" value="${m.id}"> ${m.nome}${m.specializzazione?` <span style="color:var(--tx3)">${m.specializzazione}</span>`:''}</label>`).join('')
+    : '<span style="color:var(--tx3);font-size:12px">Nessun medico in rubrica — aggiungili in Rubriche &amp; Provvigioni</span>';
 }
 
 // ---- gestione pratica: segnalatore / avvocato / medici / provvigione ----

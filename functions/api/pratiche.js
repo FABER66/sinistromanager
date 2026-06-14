@@ -27,5 +27,11 @@ export async function onRequestPost(context) {
         .bind(p.id, t.data || null, t.titolo || null, t.desc || null)
     ));
   }
+  // Medici collegati: replace
+  if (Array.isArray(p.medici)) {
+    await DB.prepare('DELETE FROM sin_pratica_medici WHERE pratica_id = ?').bind(p.id).run();
+    if (p.medici.length) await DB.batch(p.medici.map(mid =>
+      DB.prepare('INSERT INTO sin_pratica_medici (pratica_id, medico_id) VALUES (?,?)').bind(p.id, mid)));
+  }
   return json({ ok: true, id: p.id });
 }

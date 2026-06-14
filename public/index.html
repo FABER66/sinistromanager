@@ -375,6 +375,9 @@ tbody tr{cursor:pointer}
       <div class="ni adm" onclick="goTo('fatture')">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 1.5h8v13l-2-1.2-2 1.2-2-1.2-2 1.2zM6 5h4M6 8h4"/></svg>Fatture
       </div>
+      <div class="ni adm" onclick="goTo('rubriche')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 2h9v12H5z"/><path d="M2 4h3M2 8h3M2 12h3M8 6h3M8 9h3"/></svg>Rubriche &amp; Provvigioni
+      </div>
       <div class="ni adm" onclick="apriImpostazioni()">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="2.2"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3.3 3.3l1.4 1.4M11.3 11.3l1.4 1.4M12.7 3.3l-1.4 1.4M4.7 11.3l-1.4 1.4"/></svg>Impostazioni studio
       </div>
@@ -586,7 +589,16 @@ tbody tr{cursor:pointer}
                 <option value="">— Nessuno (gestisco io) —</option>
               </select>
             </div>
-            <div class="fg"><label class="flbl">Legale assegnatario</label><input class="fi" id="n-legale" placeholder="Avv. a cui è affidata la pratica" list="legali-list"><datalist id="legali-list"></datalist></div>
+            <div class="fg"><label class="flbl">Chi la manda (segnalatore)</label><select class="fsel" id="n-segnalatore"><option value="">— nessuno —</option></select></div>
+            <div class="fg"><label class="flbl">A chi l'affidiamo (avvocato)</label><select class="fsel" id="n-avvocato"><option value="">— nessuno —</option></select></div>
+            <div class="fg full"><label class="flbl">Provvigione segnalatore</label>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <select class="fsel" id="n-provv-benef" style="flex:1;min-width:140px"><option value="">— nessun beneficiario —</option></select>
+                <select class="fsel" id="n-provv-tipo" style="max-width:90px"><option value="fisso">€</option><option value="percentuale">%</option></select>
+                <input class="fi" type="number" id="n-provv-val" placeholder="valore" step="0.01" style="max-width:120px">
+              </div>
+            </div>
+            <div class="fg full"><label class="flbl">Figure sanitarie coinvolte</label><div id="n-medici" style="margin-top:4px"></div></div>
             <div class="fg full"><label class="flbl">Note iniziali</label><textarea class="fta" id="n-note" placeholder="Descrizione sinistro, prime impressioni, urgenze..."></textarea></div>
           </div>
         </div>
@@ -647,6 +659,18 @@ tbody tr{cursor:pointer}
         <div class="card"><div class="ct">Registro fatture / parcelle</div><div id="fatt-lista"></div></div>
       </div>
 
+      <!-- RUBRICHE & PROVVIGIONI -->
+      <div class="section" id="sec-rubriche">
+        <div class="doc-tabs" id="rub-tabs">
+          <div class="doc-tab active" id="rt-segnalatore" onclick="rubricaTab('segnalatore')">Segnalatori</div>
+          <div class="doc-tab" id="rt-collaboratore" onclick="rubricaTab('collaboratore')">Collaboratori</div>
+          <div class="doc-tab" id="rt-avvocato" onclick="rubricaTab('avvocato')">Avvocati</div>
+          <div class="doc-tab" id="rt-medico" onclick="rubricaTab('medico')">Medici</div>
+          <div class="doc-tab" id="rt-provvigioni" onclick="rubricaTab('provvigioni')">Provvigioni</div>
+        </div>
+        <div id="rub-contenuto"></div>
+      </div>
+
       <!-- DETTAGLIO PRATICA -->
       <div class="section" id="sec-dettaglio">
         <div id="det-conflict-banner"></div>
@@ -694,6 +718,7 @@ tbody tr{cursor:pointer}
             </div>
           </div>
         </div>
+        <div id="det-gestione"></div>
         <div id="det-aggiornamenti"></div>
         <div id="det-preventivo"></div>
         <div id="det-conti"></div>
@@ -948,6 +973,51 @@ tbody tr{cursor:pointer}
   </div>
 </div>
 
+<!-- MODAL ANAGRAFICA (rubrica) -->
+<div class="modal-ov" id="m-rubrica">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle" id="rub-mtitle">Anagrafica</div><button class="mclose" onclick="closeModal('m-rubrica')">×</button></div>
+    <div class="mbody">
+      <input type="hidden" id="rub-id"><input type="hidden" id="rub-tipo">
+      <div class="fgrid">
+        <div class="fg full"><label class="flbl">Nome</label><input class="fi" id="rub-nome"></div>
+        <div class="fg" id="rub-spec-wrap"><label class="flbl">Specializzazione</label>
+          <input class="fi" id="rub-spec" list="spec-list" placeholder="Radiologo, Ortopedico, Dentista...">
+          <datalist id="spec-list"><option>Radiologo</option><option>Ortopedico</option><option>Odontoiatra / Dentista</option><option>Psicologo</option><option>Fisiatra</option><option>Medico legale</option><option>Neurologo</option><option>Fisioterapista</option></datalist>
+        </div>
+        <div class="fg"><label class="flbl" id="rub-strut-lbl">Struttura / Studio</label><input class="fi" id="rub-strut"></div>
+        <div class="fg"><label class="flbl">Telefono</label><input class="fi" id="rub-tel"></div>
+        <div class="fg"><label class="flbl">Email</label><input class="fi" id="rub-email"></div>
+        <div class="fg full" id="rub-provv-wrap"><label class="flbl">Provvigione di default</label>
+          <div style="display:flex;gap:6px">
+            <select class="fsel" id="rub-provv-tipo" style="max-width:120px"><option value="fisso">€ fisso</option><option value="percentuale">%</option></select>
+            <input class="fi" type="number" id="rub-provv-val" placeholder="0" step="0.01">
+          </div>
+        </div>
+        <div class="fg full"><label class="flbl">Note</label><textarea class="fta" id="rub-note"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-rubrica')">Annulla</button><button class="btn btn-p" onclick="salvaRubrica()">Salva</button></div>
+  </div>
+</div>
+
+<!-- MODAL PAGAMENTO PROVVIGIONE -->
+<div class="modal-ov" id="m-pagamento">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">Registra pagamento provvigione</div><button class="mclose" onclick="closeModal('m-pagamento')">×</button></div>
+    <div class="mbody">
+      <input type="hidden" id="pag-benef">
+      <div class="fgrid">
+        <div class="fg full"><label class="flbl">Beneficiario</label><input class="fi" id="pag-nome" disabled></div>
+        <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="pag-data"></div>
+        <div class="fg"><label class="flbl">Importo €</label><input type="number" class="fi" id="pag-importo" step="0.01"></div>
+        <div class="fg full"><label class="flbl">Note</label><input class="fi" id="pag-note"></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-pagamento')">Annulla</button><button class="btn btn-p" onclick="salvaPagamento()">Registra pagamento</button></div>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // COLLABORATORI (mappa email→profilo per visualizzazione nomi).
@@ -1171,7 +1241,7 @@ function initApp() {
     Object.entries(USERS).filter(([,u])=>u.ruolo==='collab').map(([e,u])=>`<option value="${e}">${u.nome}</option>`).join('');
 
   // Carica dati da Firebase o usa demo
-  Promise.all([caricaDatiFirebase(), caricaMovimenti(), caricaImpostazioni(), caricaFatture()]).then(() => {
+  Promise.all([caricaDatiFirebase(), caricaMovimenti(), caricaImpostazioni(), caricaFatture(), caricaRubrica(), caricaPagamenti()]).then(() => {
     renderDashboard();
     renderListaPratiche();
     renderConflitti();
@@ -1188,9 +1258,9 @@ const avviaApp = initApp; // alias globale
 // ═══════════════════════════════════════════════════════
 const TITOLI = {
   dashboard:'Dashboard', pratiche:'Pratiche', nuova:'Nuova pratica',
-  conflitti:'Controllo conflitti', report:'Report studio', primanota:'Prima Nota', fatture:'Fatture', dettaglio:'Dettaglio pratica'
+  conflitti:'Controllo conflitti', report:'Report studio', primanota:'Prima Nota', fatture:'Fatture', rubriche:'Rubriche & Provvigioni', dettaglio:'Dettaglio pratica'
 };
-const ADM_SEZIONI = ['conflitti','report','primanota','fatture'];
+const ADM_SEZIONI = ['conflitti','report','primanota','fatture','rubriche'];
 
 function goTo(id) {
   if (ADM_SEZIONI.includes(id) && currentUser?.ruolo !== 'admin') return;
@@ -1205,6 +1275,8 @@ function goTo(id) {
   if (id === 'pratiche') acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="goTo(\'nuova\')">+ Nuova pratica</button>';
   if (id === 'primanota') { acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="apriMovimento()">+ Movimento</button>'; renderPrimaNota(); }
   if (id === 'fatture') renderFatture();
+  if (id === 'rubriche') renderRubriche();
+  if (id === 'nuova') popolaFormPratica();
   if (id === 'dettaglio' && praticaCorrente) {
     acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>` +
       (currentUser?.ruolo === 'admin'
@@ -1494,6 +1566,8 @@ function renderDettaglio() {
   document.getElementById('det-numero').textContent = p.id;
   document.getElementById('det-nome').textContent   = p.assistito.nome + ' ' + p.assistito.cognome;
   document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
+  const gEl = document.getElementById('det-gestione');
+  if (gEl) gEl.innerHTML = bloccoGestione(p);
   const aggEl = document.getElementById('det-aggiornamenti');
   if (aggEl) aggEl.innerHTML = bloccoAggiornamenti(p);
   const prevEl = document.getElementById('det-preventivo');
@@ -1846,7 +1920,15 @@ function salvaPratica() {
     },
     nota:       document.getElementById('n-note').value,
     collab:     document.getElementById('n-collab').value,
-    legale:     document.getElementById('n-legale').value.trim(),
+    segnalatore_id: document.getElementById('n-segnalatore').value ? Number(document.getElementById('n-segnalatore').value) : null,
+    avvocato_id:    document.getElementById('n-avvocato').value ? Number(document.getElementById('n-avvocato').value) : null,
+    legale:     document.getElementById('n-avvocato').value ? rubNome(document.getElementById('n-avvocato').value) : '',
+    medici:     [...document.querySelectorAll('#n-medici input:checked')].map(c => Number(c.value)),
+    provv: {
+      tipo: document.getElementById('n-provv-tipo').value,
+      valore: parseFloat(document.getElementById('n-provv-val').value) || 0,
+      beneficiario_id: document.getElementById('n-provv-benef').value || null
+    },
     fase:      'apertura',
     corrispondenza: [],
     perizia:   {perito:'',data_nomina:'',data_sopralluogo:'',importo_stimato:0,note:''},
@@ -2810,6 +2892,212 @@ function ristampaFattura(id) {
   try { dati = JSON.parse(f.dati_json || '{}'); } catch(e) {}
   stampaFattura({ numero:f.numero, data:f.data, cliente:f.cliente, pratica_id:f.pratica_id,
     voci, imponibile:f.imponibile, cassa:f.cassa, iva:f.iva, ritenuta:f.ritenuta, totale:f.totale, netto:f.netto, dati });
+}
+
+// ═══════════════════════════════════════════════════════
+// RUBRICHE & PROVVIGIONI — segnalatori, collaboratori, avvocati, medici
+// ═══════════════════════════════════════════════════════
+let rubrica = [];
+let pagamenti = [];
+let rubTipoCorrente = 'segnalatore';
+const TIPO_LABEL = { segnalatore:'Segnalatore', collaboratore:'Collaboratore', avvocato:'Avvocato', medico:'Medico' };
+
+async function caricaRubrica() { try { rubrica = (await api('rubrica')).rubrica || []; } catch(e){ console.warn('Rubrica:', e.message); } }
+async function caricaPagamenti() { try { pagamenti = (await api('pagamenti')).pagamenti || []; } catch(e){ console.warn('Pagamenti:', e.message); } }
+
+const rubByTipo = t => rubrica.filter(r => r.tipo === t);
+const rubById = id => rubrica.find(r => r.id == id);
+const rubNome = id => rubById(id)?.nome || '';
+
+function preventivoTotale(p) { return (p.preventivo||[]).reduce((s,v)=>s+(Number(v.importo)||0),0); }
+function provvImporto(p) {
+  if (!p.provv || !p.provv.beneficiario_id) return 0;
+  const v = Number(p.provv.valore)||0;
+  return p.provv.tipo === 'percentuale' ? preventivoTotale(p) * v/100 : v;
+}
+
+function rubricaTab(tipo) {
+  rubTipoCorrente = tipo;
+  document.querySelectorAll('#rub-tabs .doc-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('rt-'+tipo).classList.add('active');
+  renderRubriche();
+}
+
+function renderRubriche() {
+  const el = document.getElementById('rub-contenuto');
+  if (!el) return;
+  if (rubTipoCorrente === 'provvigioni') { el.innerHTML = renderProvvigioni(); return; }
+  const tipo = rubTipoCorrente;
+  const items = rubByTipo(tipo);
+  const isMedico = tipo === 'medico';
+  const isProvv = tipo === 'segnalatore' || tipo === 'collaboratore';
+  const righe = items.length ? items.map(r => `
+    <div class="pratica-card" style="grid-template-columns:1fr auto;cursor:default">
+      <div>
+        <div style="font-weight:700">${r.nome}${isMedico&&r.specializzazione?` <span class="badge bb">${r.specializzazione}</span>`:''}</div>
+        <div class="pc-det">${[r.struttura, r.telefono, r.email].filter(Boolean).join(' · ')||'—'}${isProvv&&r.provv_valore?` · prov. default ${r.provv_tipo==='percentuale'?r.provv_valore+'%':eur(r.provv_valore)}`:''}</div>
+        ${r.note?`<div class="pc-det" style="margin-top:2px">${r.note}</div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-sm" onclick="modificaAnagrafica(${r.id})">Modifica</button>
+        <button class="btn btn-sm btn-rd" onclick="eliminaAnagrafica(${r.id})">×</button>
+      </div>
+    </div>`).join('') : '<div style="color:var(--tx3);padding:24px;text-align:center">Nessun nominativo</div>';
+  el.innerHTML = `<div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button class="btn btn-p btn-sm" onclick="nuovaAnagrafica('${tipo}')">+ Nuovo ${TIPO_LABEL[tipo]}</button></div>${righe}`;
+}
+
+function renderProvvigioni() {
+  const benef = rubrica.filter(r => r.tipo === 'segnalatore' || r.tipo === 'collaboratore');
+  const righe = benef.map(b => {
+    const maturato = pratiche.filter(p => p.provv?.beneficiario_id == b.id).reduce((s,p)=>s+provvImporto(p),0);
+    const pagato = pagamenti.filter(x => x.beneficiario_id == b.id).reduce((s,x)=>s+(Number(x.importo)||0),0);
+    const daPagare = maturato - pagato;
+    if (maturato === 0 && pagato === 0) return '';
+    return `<tr style="border-bottom:1px solid var(--brd)">
+      <td style="padding:9px 6px;font-weight:700">${b.nome}<div style="font-size:11px;color:var(--tx3);font-weight:400">${TIPO_LABEL[b.tipo]}</div></td>
+      <td style="padding:9px 6px;text-align:right">${eur(maturato)}</td>
+      <td style="padding:9px 6px;text-align:right;color:var(--gn)">${eur(pagato)}</td>
+      <td style="padding:9px 6px;text-align:right;font-weight:700;color:${daPagare>0.005?'#E67E22':'var(--gn)'}">${eur(daPagare)}</td>
+      <td style="padding:9px 6px;text-align:right"><button class="btn btn-sm btn-p" onclick="registraPagamento(${b.id})">Paga</button></td>
+    </tr>`;
+  }).filter(Boolean).join('');
+  const totMat = pratiche.reduce((s,p)=>s+provvImporto(p),0);
+  const totPag = pagamenti.reduce((s,x)=>s+(Number(x.importo)||0),0);
+  return `<div class="g3">
+      <div class="mc"><div class="ml">Provvigioni maturate</div><div class="mv">${eur(totMat)}</div></div>
+      <div class="mc"><div class="ml">Pagate</div><div class="mv" style="color:var(--gn)">${eur(totPag)}</div></div>
+      <div class="mc"><div class="ml">Da pagare</div><div class="mv" style="color:#E67E22">${eur(totMat-totPag)}</div></div>
+    </div>
+    <div class="card"><div class="ct">Riepilogo per beneficiario</div>
+    ${righe ? `<table style="width:100%;border-collapse:collapse;font-size:13px"><tr style="border-bottom:2px solid var(--brd)"><th style="text-align:left;padding:8px 6px">Beneficiario</th><th style="text-align:right">Maturato</th><th style="text-align:right">Pagato</th><th style="text-align:right">Da pagare</th><th></th></tr>${righe}</table>` : '<div style="color:var(--tx3);padding:16px;text-align:center">Nessuna provvigione: assegna un segnalatore/beneficiario e un importo nelle pratiche.</div>'}
+    </div>`;
+}
+
+// ---- CRUD anagrafiche ----
+function nuovaAnagrafica(tipo) {
+  document.getElementById('rub-id').value = '';
+  document.getElementById('rub-tipo').value = tipo;
+  ['rub-nome','rub-spec','rub-strut','rub-tel','rub-email','rub-note','rub-provv-val'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('rub-provv-tipo').value = 'fisso';
+  configuraModaleRubrica(tipo);
+  document.getElementById('rub-mtitle').textContent = 'Nuovo ' + TIPO_LABEL[tipo];
+  openModal('m-rubrica');
+}
+function modificaAnagrafica(id) {
+  const r = rubById(id); if (!r) return;
+  document.getElementById('rub-id').value = r.id;
+  document.getElementById('rub-tipo').value = r.tipo;
+  document.getElementById('rub-nome').value = r.nome || '';
+  document.getElementById('rub-spec').value = r.specializzazione || '';
+  document.getElementById('rub-strut').value = r.struttura || '';
+  document.getElementById('rub-tel').value = r.telefono || '';
+  document.getElementById('rub-email').value = r.email || '';
+  document.getElementById('rub-note').value = r.note || '';
+  document.getElementById('rub-provv-tipo').value = r.provv_tipo || 'fisso';
+  document.getElementById('rub-provv-val').value = r.provv_valore || '';
+  configuraModaleRubrica(r.tipo);
+  document.getElementById('rub-mtitle').textContent = 'Modifica ' + TIPO_LABEL[r.tipo];
+  openModal('m-rubrica');
+}
+function configuraModaleRubrica(tipo) {
+  document.getElementById('rub-spec-wrap').style.display = (tipo==='medico') ? '' : 'none';
+  document.getElementById('rub-provv-wrap').style.display = (tipo==='segnalatore'||tipo==='collaboratore') ? '' : 'none';
+  document.getElementById('rub-strut-lbl').textContent = (tipo==='medico') ? 'Struttura / Clinica' : (tipo==='avvocato' ? 'Studio / Foro' : 'Riferimento');
+}
+async function salvaRubrica() {
+  const body = {
+    id: document.getElementById('rub-id').value || undefined,
+    tipo: document.getElementById('rub-tipo').value,
+    nome: valId('rub-nome'), specializzazione: valId('rub-spec'), struttura: valId('rub-strut'),
+    telefono: valId('rub-tel'), email: valId('rub-email'), note: valId('rub-note'),
+    provv_tipo: document.getElementById('rub-provv-tipo').value, provv_valore: parseFloat(document.getElementById('rub-provv-val').value)||0
+  };
+  if (!body.nome) { toast('Inserisci il nome'); return; }
+  try { await api('rubrica', { method:'POST', body }); await caricaRubrica(); closeModal('m-rubrica'); renderRubriche(); toast('Salvato'); }
+  catch(e){ toast('Errore: '+e.message); }
+}
+async function eliminaAnagrafica(id) {
+  if (!confirm('Eliminare questo nominativo?')) return;
+  try { await api('rubrica/'+id, { method:'DELETE' }); rubrica = rubrica.filter(r=>r.id!=id); renderRubriche(); toast('Eliminato'); }
+  catch(e){ toast('Errore: '+e.message); }
+}
+
+// ---- pagamenti provvigioni ----
+function registraPagamento(benefId) {
+  const b = rubById(benefId);
+  document.getElementById('pag-benef').value = benefId;
+  document.getElementById('pag-nome').value = b?.nome || '';
+  document.getElementById('pag-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('pag-importo').value = '';
+  document.getElementById('pag-note').value = '';
+  openModal('m-pagamento');
+}
+async function salvaPagamento() {
+  const body = { beneficiario_id: document.getElementById('pag-benef').value, data: document.getElementById('pag-data').value,
+    importo: parseFloat(document.getElementById('pag-importo').value)||0, note: valId('pag-note') };
+  if (!(body.importo>0)) { toast('Inserisci un importo'); return; }
+  try { await api('pagamenti', { method:'POST', body }); await caricaPagamenti(); closeModal('m-pagamento'); renderRubriche(); toast('Pagamento registrato'); }
+  catch(e){ toast('Errore: '+e.message); }
+}
+
+// popola i select/checkbox del form Nuova pratica dalle rubriche
+function popolaFormPratica() {
+  const opt = (arr, sp) => arr.map(r => `<option value="${r.id}">${r.nome}${sp&&r.specializzazione?' ('+r.specializzazione+')':''}</option>`).join('');
+  const benef = rubrica.filter(r => r.tipo==='segnalatore' || r.tipo==='collaboratore');
+  const sSeg = document.getElementById('n-segnalatore'); if (sSeg) sSeg.innerHTML = '<option value="">— nessuno —</option>' + opt(rubByTipo('segnalatore'));
+  const sAvv = document.getElementById('n-avvocato');    if (sAvv) sAvv.innerHTML = '<option value="">— nessuno —</option>' + opt(rubByTipo('avvocato'));
+  const sBen = document.getElementById('n-provv-benef');  if (sBen) sBen.innerHTML = '<option value="">— nessun beneficiario —</option>' + opt(benef);
+  const med = rubByTipo('medico');
+  const dMed = document.getElementById('n-medici');
+  if (dMed) dMed.innerHTML = med.length
+    ? med.map(m => `<label style="display:inline-flex;gap:5px;align-items:center;margin:0 12px 6px 0;font-size:12px;cursor:pointer"><input type="checkbox" value="${m.id}"> ${m.nome}${m.specializzazione?` <span style="color:var(--tx3)">${m.specializzazione}</span>`:''}</label>`).join('')
+    : '<span style="color:var(--tx3);font-size:12px">Nessun medico in rubrica — aggiungili in Rubriche &amp; Provvigioni</span>';
+}
+
+// ---- gestione pratica: segnalatore / avvocato / medici / provvigione ----
+function optsRub(tipo, sel) {
+  return rubByTipo(tipo).map(r => `<option value="${r.id}" ${r.id==sel?'selected':''}>${r.nome}${tipo==='medico'&&r.specializzazione?' ('+r.specializzazione+')':''}</option>`).join('');
+}
+
+function bloccoGestione(p) {
+  const benef = rubrica.filter(r => r.tipo==='segnalatore' || r.tipo==='collaboratore');
+  const benefOpts = benef.map(r => `<option value="${r.id}" ${r.id==p.provv?.beneficiario_id?'selected':''}>${r.nome}</option>`).join('');
+  const medici = rubByTipo('medico');
+  const mediciChk = medici.length
+    ? medici.map(m => `<label style="display:inline-flex;gap:5px;align-items:center;margin:0 12px 6px 0;font-size:12px;cursor:pointer"><input type="checkbox" ${(p.medici||[]).map(Number).includes(m.id)?'checked':''} onchange="toggleMedico(${m.id},this.checked)"> ${m.nome}${m.specializzazione?` <span style="color:var(--tx3)">${m.specializzazione}</span>`:''}</label>`).join('')
+    : '<span style="color:var(--tx3);font-size:12px">Nessun medico in rubrica — aggiungili in Rubriche &amp; Provvigioni</span>';
+  const provvVal = provvImporto(p);
+  return `<div class="card" style="margin-top:16px">
+    <div class="ct">Gestione &amp; provvigione</div>
+    <div class="fgrid">
+      <div class="fg"><label class="flbl">Chi la manda (segnalatore)</label><select class="fsel" onchange="setGestione('segnalatore_id',this.value)"><option value="">— nessuno —</option>${optsRub('segnalatore',p.segnalatore_id)}</select></div>
+      <div class="fg"><label class="flbl">A chi l'affidiamo (avvocato)</label><select class="fsel" onchange="setGestione('avvocato_id',this.value)"><option value="">— ${p.legale||'nessuno'} —</option>${optsRub('avvocato',p.avvocato_id)}</select></div>
+    </div>
+    <div class="fgrid" style="margin-top:10px">
+      <div class="fg"><label class="flbl">Provvigione a</label><select class="fsel" id="g-benef" onchange="setProvv()"><option value="">— nessuno —</option>${benefOpts}</select></div>
+      <div class="fg"><label class="flbl">Tipo / valore${provvVal?` · matura ${eur(provvVal)}`:''}</label><div style="display:flex;gap:6px"><select class="fsel" id="g-ptipo" onchange="setProvv()" style="max-width:90px"><option value="fisso" ${p.provv?.tipo!=='percentuale'?'selected':''}>€</option><option value="percentuale" ${p.provv?.tipo==='percentuale'?'selected':''}>%</option></select><input class="fi" type="number" id="g-pval" value="${p.provv?.valore||''}" onchange="setProvv()" placeholder="0" step="0.01"></div></div>
+    </div>
+    <div style="margin-top:12px"><label class="flbl">Figure sanitarie coinvolte</label><div style="margin-top:6px">${mediciChk}</div></div>
+  </div>`;
+}
+
+function setGestione(campo, val) {
+  const p = praticaCorrente; if (!p) return;
+  p[campo] = val ? Number(val) : null;
+  if (campo === 'avvocato_id' && val) p.legale = rubNome(val);
+  salvaPraticaFirebase(p).catch(()=>{});
+  toast('Aggiornato');
+}
+function setProvv() {
+  const p = praticaCorrente; if (!p) return;
+  p.provv = { beneficiario_id: document.getElementById('g-benef').value || null, tipo: document.getElementById('g-ptipo').value, valore: parseFloat(document.getElementById('g-pval').value)||0 };
+  salvaPraticaFirebase(p).catch(()=>{});
+}
+function toggleMedico(mid, on) {
+  const p = praticaCorrente; if (!p) return;
+  p.medici = (p.medici || []).map(Number);
+  if (on) { if (!p.medici.includes(mid)) p.medici.push(mid); } else { p.medici = p.medici.filter(x => x !== mid); }
+  aggiornaPraticaFirebase(p.id, { medici: p.medici }).catch(()=>{});
 }
 
 // ═══════════════════════════════════════════════════════

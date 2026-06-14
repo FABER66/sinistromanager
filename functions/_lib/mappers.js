@@ -28,7 +28,7 @@ export function aggRowToApp(r) {
   return { id: r.id, data: r.data, testo: r.testo };
 }
 
-export function praticaRowToApp(p, corr, doc, tl, prev, agg) {
+export function praticaRowToApp(p, corr, doc, tl, prev, agg, medici) {
   return {
     id: p.id, data: p.data, ora: p.ora, luogo: p.luogo,
     tipo: p.tipo, forze: p.forze, fase: p.fase, note: p.note,
@@ -44,6 +44,10 @@ export function praticaRowToApp(p, corr, doc, tl, prev, agg) {
     danno: { fisico: !!p.danno_fisico, materiale: !!p.danno_materiale, morale: !!p.danno_morale },
     collab: p.collab_id || '',
     legale: p.legale || '',
+    segnalatore_id: p.segnalatore_id || null,
+    avvocato_id: p.avvocato_id || null,
+    medici: medici || [],
+    provv: { tipo: p.provv_tipo || 'fisso', valore: p.provv_valore || 0, beneficiario_id: p.provv_beneficiario_id || null },
     perizia: {
       perito: p.perizia_perito || '', data_nomina: p.perizia_data_nomina || '',
       data_sopralluogo: p.perizia_data_sopralluogo || '',
@@ -74,6 +78,9 @@ export function appToPraticaRow(p) {
     cp_nome: c.nome || null, cp_cognome: c.cognome || null, cp_cf: c.cf || null,
     cp_targa: c.targa || null, cp_assicurazione: c.assicurazione || null, cp_sinistro: c.sinistro || null,
     danno_fisico: d.fisico ? 1 : 0, danno_materiale: d.materiale ? 1 : 0, danno_morale: d.morale ? 1 : 0,
-    collab_id: p.collab || null, legale: p.legale || null
+    collab_id: p.collab || null, legale: p.legale || null,
+    segnalatore_id: p.segnalatore_id || null, avvocato_id: p.avvocato_id || null,
+    provv_tipo: p.provv?.tipo || null, provv_valore: p.provv?.valore != null ? Number(p.provv.valore) : null,
+    provv_beneficiario_id: p.provv?.beneficiario_id || null
   };
 }

@@ -1,0 +1,19 @@
+name = "sinistromanager"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "public"
+
+# D1 — database SQLite (database_id va riempito dopo `wrangler d1 create`)
+[[d1_databases]]
+binding = "DB"
+database_name = "sinistromanager"
+database_id = "6078ebfa-67fd-475d-a12d-d9bbaba518a8"
+
+# R2 — storage documenti caricati
+[[r2_buckets]]
+binding = "DOCS"
+bucket_name = "sinistro-docs"
+
+# Secrets (NON qui): impostare con
+#   wrangler pages secret put GEMINI_API_KEY
+#   wrangler pages secret put SESSION_SECRET

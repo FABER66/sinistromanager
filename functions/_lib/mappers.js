@@ -39,6 +39,7 @@ export function praticaRowToApp(p, corr, doc, tl, prev) {
     },
     danno: { fisico: !!p.danno_fisico, materiale: !!p.danno_materiale, morale: !!p.danno_morale },
     collab: p.collab_id || '',
+    legale: p.legale || '',
     perizia: {
       perito: p.perizia_perito || '', data_nomina: p.perizia_data_nomina || '',
       data_sopralluogo: p.perizia_data_sopralluogo || '',
@@ -68,6 +69,6 @@ export function appToPraticaRow(p) {
     cp_nome: c.nome || null, cp_cognome: c.cognome || null, cp_cf: c.cf || null,
     cp_targa: c.targa || null, cp_assicurazione: c.assicurazione || null, cp_sinistro: c.sinistro || null,
     danno_fisico: d.fisico ? 1 : 0, danno_materiale: d.materiale ? 1 : 0, danno_morale: d.morale ? 1 : 0,
-    collab_id: p.collab || null
+    collab_id: p.collab || null, legale: p.legale || null
   };
 }

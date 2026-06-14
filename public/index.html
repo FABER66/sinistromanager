@@ -583,6 +583,7 @@ tbody tr{cursor:pointer}
                 <option value="">— Nessuno (gestisco io) —</option>
               </select>
             </div>
+            <div class="fg"><label class="flbl">Legale assegnatario</label><input class="fi" id="n-legale" placeholder="Avv. a cui è affidata la pratica" list="legali-list"><datalist id="legali-list"></datalist></div>
             <div class="fg full"><label class="flbl">Note iniziali</label><textarea class="fta" id="n-note" placeholder="Descrizione sinistro, prime impressioni, urgenze..."></textarea></div>
           </div>
         </div>
@@ -897,7 +898,7 @@ tbody tr{cursor:pointer}
     <div class="mhdr"><div class="mtitle">Impostazioni studio</div><button class="mclose" onclick="closeModal('m-impostazioni')">×</button></div>
     <div class="mbody">
       <div class="fgrid">
-        <div class="fg full"><label class="flbl">Intestazione (Studio / Avv.)</label><input class="fi" id="imp-intestazione" placeholder="Studio Legale Avv. Mario Rossi"></div>
+        <div class="fg full"><label class="flbl">Intestazione (Studio / Consulente)</label><input class="fi" id="imp-intestazione" placeholder="Studio Sagripanti"></div>
         <div class="fg"><label class="flbl">P. IVA</label><input class="fi" id="imp-piva"></div>
         <div class="fg"><label class="flbl">Codice fiscale</label><input class="fi" id="imp-cf"></div>
         <div class="fg full"><label class="flbl">Indirizzo</label><input class="fi" id="imp-indirizzo" placeholder="Via ..., CAP Città (PR)"></div>
@@ -905,11 +906,12 @@ tbody tr{cursor:pointer}
         <div class="fg"><label class="flbl">Contatti (tel / email / PEC)</label><input class="fi" id="imp-contatti"></div>
         <div class="fg"><label class="flbl">Regime fiscale</label>
           <select class="fsel" id="imp-regime">
-            <option value="ordinario">Ordinario (IVA + ritenuta)</option>
-            <option value="forfettario">Forfettario (no IVA, no ritenuta)</option>
+            <option value="societa">Società (solo IVA 22%)</option>
+            <option value="professionista">Professionista (IVA + Rivalsa INPS + ritenuta)</option>
+            <option value="forfettario">Forfettario (no IVA)</option>
           </select>
         </div>
-        <div class="fg"><label class="flbl">Cassa Forense %</label><input class="fi" type="number" id="imp-cassa" value="4"></div>
+        <div class="fg"><label class="flbl">Rivalsa INPS %</label><input class="fi" type="number" id="imp-cassa" value="4"></div>
         <div class="fg"><label class="flbl">IVA %</label><input class="fi" type="number" id="imp-iva" value="22"></div>
         <div class="fg"><label class="flbl">Ritenuta d'acconto %</label><input class="fi" type="number" id="imp-ritenuta" value="20"></div>
       </div>
@@ -932,7 +934,7 @@ tbody tr{cursor:pointer}
       <button class="btn btn-sm" onclick="aggiungiVoceFattura()">+ Voce</button>
       <div class="ct" style="margin-top:16px">Opzioni fiscali</div>
       <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:6px">
-        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fat-cassa" onchange="calcolaFattura()"> Cassa Forense</label>
+        <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fat-cassa" onchange="calcolaFattura()"> Rivalsa INPS</label>
         <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fat-iva" onchange="calcolaFattura()"> IVA</label>
         <label style="display:flex;gap:6px;align-items:center;cursor:pointer"><input type="checkbox" id="fat-ritenuta" onchange="calcolaFattura()"> Ritenuta d'acconto</label>
       </div>
@@ -1170,6 +1172,7 @@ function initApp() {
     renderListaPratiche();
     renderConflitti();
     renderReport();
+    popolaLegali();
     goTo('dashboard');
   });
 }
@@ -1450,6 +1453,24 @@ async function eliminaPratica(id) {
   }
 }
 
+function cambiaLegale() {
+  const p = praticaCorrente; if (!p) return;
+  const nuovo = prompt('Legale assegnatario (avvocato a cui è affidata la pratica):', p.legale || '');
+  if (nuovo === null) return;
+  p.legale = nuovo.trim();
+  salvaPraticaFirebase(p).catch(()=>{});
+  renderDettaglio();
+  popolaLegali();
+  toast('Legale aggiornato');
+}
+
+function popolaLegali() {
+  const dl = document.getElementById('legali-list');
+  if (!dl) return;
+  const legali = [...new Set(pratiche.map(p => p.legale).filter(Boolean))].sort();
+  dl.innerHTML = legali.map(l => `<option value="${l.replace(/"/g,'&quot;')}">`).join('');
+}
+
 function renderDettaglio() {
   const p = praticaCorrente;
   if (!p) return;
@@ -1561,6 +1582,7 @@ function renderDettaglio() {
     '<tr><td style="color:var(--tx3);padding:4px 0">CF assistito</td><td style="padding:4px 0;font-family:monospace">' + (p.assistito.cf||'—') + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Telefono</td><td style="padding:4px 0">' + (p.assistito.tel||'—') + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Collaboratore</td><td style="padding:4px 0">' + (p.collab?USERS[p.collab]?.nome:'—') + '</td></tr>' +
+    '<tr><td style="color:var(--tx3);padding:4px 0">Legale assegnatario</td><td style="padding:4px 0;font-weight:700;cursor:pointer" onclick="cambiaLegale()" title="Clicca per assegnare/cambiare">' + (p.legale ? p.legale : '<span style="color:var(--am);font-weight:400">— non assegnato (clicca) —</span>') + '</td></tr>' +
     '<tr><td style="color:var(--tx3);padding:4px 0">Note</td><td style="padding:4px 0">' + (p.note||'—') + '</td></tr>' +
     '</table>' + riepilogoMedici + riepilogoLettere;
 
@@ -1807,6 +1829,7 @@ function salvaPratica() {
     },
     nota:       document.getElementById('n-note').value,
     collab:     document.getElementById('n-collab').value,
+    legale:     document.getElementById('n-legale').value.trim(),
     fase:      'apertura',
     corrispondenza: [],
     perizia:   {perito:'',data_nomina:'',data_sopralluogo:'',importo_stimato:0,note:''},
@@ -2478,7 +2501,7 @@ function bloccoContiPratica(id) {
 // ═══════════════════════════════════════════════════════
 // PREVENTIVO PRATICA — voci di spesa previste
 // ═══════════════════════════════════════════════════════
-const VOCI_PREVENTIVO = ['Onorario professionale','Spese perito','Spese medico legale','Bolli e marche','Spese postali e vive','Contributo Cassa Forense 4%','Spese di trasferta'];
+const VOCI_PREVENTIVO = ['Onorario di consulenza','Spese perito','Spese medico legale','Spese legali','Bolli e marche','Spese postali e vive','Rivalsa INPS 4%','Spese di trasferta'];
 
 function bloccoPreventivo(p) {
   const voci = p.preventivo || [];
@@ -2552,7 +2575,7 @@ function apriImpostazioni() {
   document.getElementById('imp-indirizzo').value = i.indirizzo || '';
   document.getElementById('imp-iban').value = i.iban || '';
   document.getElementById('imp-contatti').value = i.contatti || '';
-  document.getElementById('imp-regime').value = i.regime || 'ordinario';
+  document.getElementById('imp-regime').value = i.regime || 'societa';
   document.getElementById('imp-cassa').value = i.cassa_perc || '4';
   document.getElementById('imp-iva').value = i.iva_perc || '22';
   document.getElementById('imp-ritenuta').value = i.ritenuta_perc || '20';
@@ -2582,11 +2605,13 @@ function apriFattura(praticaId) {
     ? `${p.assistito?.nome||''} ${p.assistito?.cognome||''}`.trim() + (p.assistito?.cf ? ' — C.F. ' + p.assistito.cf : '')
     : '';
   fatVoci = (p?.preventivo || []).map(v => ({ descrizione: v.descrizione, importo: Number(v.importo)||0 }));
-  if (!fatVoci.length) fatVoci = [{ descrizione: 'Onorario professionale', importo: 0 }];
-  const forf = impostazioni.regime === 'forfettario';
-  document.getElementById('fat-cassa').checked = true;
-  document.getElementById('fat-iva').checked = !forf;
-  document.getElementById('fat-ritenuta').checked = !forf;
+  if (!fatVoci.length) fatVoci = [{ descrizione: 'Onorario di consulenza', importo: 0 }];
+  const reg = impostazioni.regime || 'societa';
+  const prof = reg === 'professionista';
+  const forf = reg === 'forfettario';
+  document.getElementById('fat-cassa').checked = prof;     // Rivalsa INPS: solo professionista persona fisica
+  document.getElementById('fat-iva').checked = !forf;      // IVA: tranne forfettario
+  document.getElementById('fat-ritenuta').checked = prof;  // ritenuta: solo professionista
   renderVociFattura();
   calcolaFattura();
   openModal('m-fattura');
@@ -2613,7 +2638,7 @@ function calcFattura() {
   const cassa = aCassa ? imponibile * cassaP/100 : 0;
   const baseIva = imponibile + cassa;
   const iva = aIva ? baseIva * ivaP/100 : 0;
-  const ritenuta = aRit ? imponibile * ritP/100 : 0;
+  const ritenuta = aRit ? (imponibile + cassa) * ritP/100 : 0;  // Rivalsa INPS concorre alla ritenuta
   const bollo = (!aIva && baseIva > 77.47) ? 2 : 0;
   const totale = imponibile + cassa + iva + bollo;
   const netto = totale - ritenuta;
@@ -2626,7 +2651,7 @@ function calcolaFattura() {
   document.getElementById('fat-riepilogo').innerHTML =
     '<table style="width:100%;max-width:340px;margin-left:auto;font-size:13px">' +
     r('Imponibile (compensi)', c.imponibile) +
-    (c.aCassa ? r(`Cassa Forense ${c.cassaP}%`, c.cassa) : '') +
+    (c.aCassa ? r(`Rivalsa INPS ${c.cassaP}%`, c.cassa) : '') +
     (c.aIva ? r(`IVA ${c.ivaP}%`, c.iva) : '') +
     (c.bollo ? r('Marca da bollo', c.bollo) : '') +
     r('Totale fattura', c.totale, true) +
@@ -2661,7 +2686,7 @@ function stampaFattura(f) {
   const righe = (f.voci || []).map(v => `<tr><td>${esc(v.descrizione)}</td><td class="r">${eur(v.importo)}</td></tr>`).join('');
   const riepBody = [];
   riepBody.push(`<tr><td>Imponibile</td><td class="r">${eur(f.imponibile)}</td></tr>`);
-  if (d.aCassa) riepBody.push(`<tr><td>Cassa Forense ${d.cassaP}%</td><td class="r">${eur(f.cassa)}</td></tr>`);
+  if (d.aCassa) riepBody.push(`<tr><td>Rivalsa INPS ${d.cassaP}%</td><td class="r">${eur(f.cassa)}</td></tr>`);
   if (d.aIva) riepBody.push(`<tr><td>IVA ${d.ivaP}%</td><td class="r">${eur(f.iva)}</td></tr>`);
   if (d.bollo) riepBody.push(`<tr><td>Marca da bollo</td><td class="r">${eur(d.bollo)}</td></tr>`);
   riepBody.push(`<tr class="tot"><td>Totale fattura</td><td class="r">${eur(f.totale)}</td></tr>`);

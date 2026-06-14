@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS sin_pratiche (
   danno_materiale         INTEGER DEFAULT 0,
   danno_morale            INTEGER DEFAULT 0,
   collab_id               TEXT,
+  legale                  TEXT,
   perizia_perito          TEXT,
   perizia_data_nomina     TEXT,
   perizia_data_sopralluogo TEXT,

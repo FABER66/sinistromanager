@@ -359,6 +359,9 @@ tbody tr{cursor:pointer}
       <div class="ni adm" onclick="goTo('report')">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12L5 8L8 10L11 5L14 7"/><path d="M2 14h12"/></svg>Report studio
       </div>
+      <div class="ni adm" onclick="goTo('primanota')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 6v8"/></svg>Prima Nota
+      </div>
     </nav>
     <div class="sb-user">
       <div class="uav" id="u-ini">—</div>
@@ -602,6 +605,23 @@ tbody tr{cursor:pointer}
         </div>
       </div>
 
+      <!-- PRIMA NOTA -->
+      <div class="section" id="sec-primanota">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+          <select class="fi" id="pn-mese" style="max-width:200px" onchange="renderPrimaNota()"></select>
+          <select class="fi" id="pn-pratica" style="max-width:260px" onchange="renderPrimaNota()"><option value="">Tutte le pratiche</option></select>
+        </div>
+        <div class="g3">
+          <div class="mc"><div class="ml">Entrate</div><div class="mv" id="pn-entrate" style="color:var(--gn)">—</div></div>
+          <div class="mc"><div class="ml">Uscite</div><div class="mv" id="pn-uscite" style="color:#C0392B">—</div></div>
+          <div class="mc"><div class="ml">Saldo</div><div class="mv" id="pn-saldo">—</div><div class="md" id="pn-periodo"></div></div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="ct">Movimenti</div>
+          <div id="pn-lista"></div>
+        </div>
+      </div>
+
       <!-- DETTAGLIO PRATICA -->
       <div class="section" id="sec-dettaglio">
         <div id="det-conflict-banner"></div>
@@ -649,6 +669,7 @@ tbody tr{cursor:pointer}
             </div>
           </div>
         </div>
+        <div id="det-conti"></div>
       </div>
 
     </div>
@@ -813,6 +834,38 @@ tbody tr{cursor:pointer}
     <div class="mhdr"><div class="mtitle" id="m-fase-title">Avanza fase</div><button class="mclose" onclick="closeModal('m-fase')">×</button></div>
     <div class="mbody" id="m-fase-body"></div>
     <div class="mfoot"><button class="btn" onclick="closeModal('m-fase')">Annulla</button><button class="btn btn-p" onclick="salvaFase()">Conferma e avanza</button></div>
+  </div>
+</div>
+
+<!-- MODAL MOVIMENTO (Prima Nota) -->
+<div class="modal-ov" id="m-movimento">
+  <div class="modal">
+    <div class="mhdr"><div class="mtitle">Nuovo movimento</div><button class="mclose" onclick="closeModal('m-movimento')">×</button></div>
+    <div class="mbody">
+      <div class="fgrid">
+        <div class="fg"><label class="flbl">Tipo</label>
+          <select class="fsel" id="mov-tipo" onchange="aggiornaCategorieMovimento()">
+            <option value="entrata">Entrata</option>
+            <option value="uscita">Uscita</option>
+          </select>
+        </div>
+        <div class="fg"><label class="flbl">Data</label><input type="date" class="fi" id="mov-data"></div>
+        <div class="fg"><label class="flbl">Categoria</label><select class="fsel" id="mov-categoria"></select></div>
+        <div class="fg"><label class="flbl">Importo €</label><input type="number" class="fi" id="mov-importo" min="0" step="0.01" placeholder="0,00"></div>
+        <div class="fg"><label class="flbl">Metodo</label>
+          <select class="fsel" id="mov-metodo">
+            <option value="bonifico">Bonifico</option>
+            <option value="contante">Contante</option>
+            <option value="assegno">Assegno</option>
+            <option value="pos">POS / Carta</option>
+          </select>
+        </div>
+        <div class="fg"><label class="flbl">Pratica collegata</label><select class="fsel" id="mov-pratica"><option value="">— Nessuna (studio) —</option></select></div>
+        <div class="fg full"><label class="flbl">Descrizione</label><input type="text" class="fi" id="mov-descrizione" placeholder="es. Compenso pratica, Onorario perito..."></div>
+        <div class="fg full"><label class="flbl">Note</label><textarea class="fta" id="mov-note"></textarea></div>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" onclick="closeModal('m-movimento')">Annulla</button><button class="btn btn-p" onclick="salvaMovimento()">Salva movimento</button></div>
   </div>
 </div>
 
@@ -1039,7 +1092,7 @@ function initApp() {
     Object.entries(USERS).filter(([,u])=>u.ruolo==='collab').map(([e,u])=>`<option value="${e}">${u.nome}</option>`).join('');
 
   // Carica dati da Firebase o usa demo
-  caricaDatiFirebase().then(() => {
+  Promise.all([caricaDatiFirebase(), caricaMovimenti()]).then(() => {
     renderDashboard();
     renderListaPratiche();
     renderConflitti();
@@ -1055,9 +1108,9 @@ const avviaApp = initApp; // alias globale
 // ═══════════════════════════════════════════════════════
 const TITOLI = {
   dashboard:'Dashboard', pratiche:'Pratiche', nuova:'Nuova pratica',
-  conflitti:'Controllo conflitti', report:'Report studio', dettaglio:'Dettaglio pratica'
+  conflitti:'Controllo conflitti', report:'Report studio', primanota:'Prima Nota', dettaglio:'Dettaglio pratica'
 };
-const ADM_SEZIONI = ['conflitti','report'];
+const ADM_SEZIONI = ['conflitti','report','primanota'];
 
 function goTo(id) {
   if (ADM_SEZIONI.includes(id) && currentUser?.ruolo !== 'admin') return;
@@ -1070,6 +1123,7 @@ function goTo(id) {
   const acts = document.getElementById('page-act');
   acts.innerHTML = '';
   if (id === 'pratiche') acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="goTo(\'nuova\')">+ Nuova pratica</button>';
+  if (id === 'primanota') { acts.innerHTML = '<button class="btn btn-p btn-sm" onclick="apriMovimento()">+ Movimento</button>'; renderPrimaNota(); }
   if (id === 'dettaglio' && praticaCorrente) {
     acts.innerHTML = `<button class="btn btn-sm" onclick="goTo('pratiche')">← Torna alla lista</button>` +
       (currentUser?.ruolo === 'admin'
@@ -1279,6 +1333,8 @@ function renderDettaglio() {
   document.getElementById('det-numero').textContent = p.id;
   document.getElementById('det-nome').textContent   = p.assistito.nome + ' ' + p.assistito.cognome;
   document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
+  const contiEl = document.getElementById('det-conti');
+  if (contiEl) contiEl.innerHTML = bloccoContiPratica(p.id);
 
   // Badge
   const danni = [p.danno.fisico&&'Fisico', p.danno.materiale&&'Materiale', p.danno.morale&&'Morale'].filter(Boolean);
@@ -2128,6 +2184,142 @@ function toggleSidebar() {
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.addEventListener('click', e => { if(e.target.classList.contains('modal-ov')) e.target.classList.remove('open'); });
+
+// ═══════════════════════════════════════════════════════
+// PRIMA NOTA — cassa studio (entrate/uscite, collegabili a pratica)
+// ═══════════════════════════════════════════════════════
+let movimenti = [];
+const eur = n => '€ ' + (Number(n)||0).toLocaleString('it-IT', {minimumFractionDigits:2, maximumFractionDigits:2});
+const CATEGORIE_MOV = {
+  entrata: ['Compenso / Parcella', 'Acconto cliente', 'Liquidazione assicurazione', 'Rimborso spese', 'Altro'],
+  uscita:  ['Onorario perito', 'Medico legale', 'Spese vive', 'Bolli / Marche', 'Spese studio', 'Collaboratori', 'Altro']
+};
+const MESI_IT = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const meseLabel = ym => { const [y,m] = ym.split('-'); return MESI_IT[parseInt(m)-1] + ' ' + y; };
+
+async function caricaMovimenti() {
+  try { const r = await api('movimenti'); movimenti = r.movimenti || []; }
+  catch(e) { console.warn('Movimenti:', e.message); }
+}
+
+function aggiornaCategorieMovimento() {
+  const tipo = document.getElementById('mov-tipo').value;
+  document.getElementById('mov-categoria').innerHTML =
+    CATEGORIE_MOV[tipo].map(c => `<option value="${c}">${c}</option>`).join('');
+}
+
+function apriMovimento(praticaId) {
+  document.getElementById('mov-tipo').value = 'entrata';
+  aggiornaCategorieMovimento();
+  document.getElementById('mov-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('mov-importo').value = '';
+  document.getElementById('mov-descrizione').value = '';
+  document.getElementById('mov-note').value = '';
+  document.getElementById('mov-metodo').value = 'bonifico';
+  const ps = document.getElementById('mov-pratica');
+  ps.innerHTML = '<option value="">— Nessuna (studio) —</option>' +
+    pratiche.map(p => `<option value="${p.id}">${p.id} — ${p.assistito?.cognome||''} ${p.assistito?.nome||''}</option>`).join('');
+  ps.value = praticaId || '';
+  openModal('m-movimento');
+}
+
+async function salvaMovimento() {
+  const m = {
+    tipo: document.getElementById('mov-tipo').value,
+    data: document.getElementById('mov-data').value,
+    categoria: document.getElementById('mov-categoria').value,
+    importo: parseFloat(document.getElementById('mov-importo').value) || 0,
+    metodo: document.getElementById('mov-metodo').value,
+    pratica_id: document.getElementById('mov-pratica').value || null,
+    descrizione: document.getElementById('mov-descrizione').value.trim(),
+    note: document.getElementById('mov-note').value.trim()
+  };
+  if (!m.data || !m.importo) { toast('Inserisci data e importo'); return; }
+  try {
+    await api('movimenti', { method:'POST', body: m });
+    closeModal('m-movimento');
+    await caricaMovimenti();
+    renderPrimaNota();
+    if (praticaCorrente) renderDettaglio();
+    toast('Movimento registrato');
+  } catch(e) { toast('Errore: ' + e.message); }
+}
+
+async function eliminaMovimento(id) {
+  if (!confirm('Eliminare questo movimento?')) return;
+  try {
+    await api('movimenti/' + id, { method:'DELETE' });
+    movimenti = movimenti.filter(m => m.id !== id);
+    renderPrimaNota();
+    if (praticaCorrente) renderDettaglio();
+    toast('Movimento eliminato');
+  } catch(e) { toast('Errore: ' + e.message); }
+}
+
+function rigaMovimento(m, showPratica) {
+  const seg = m.tipo === 'uscita' ? '−' : '+';
+  const col = m.tipo === 'uscita' ? '#C0392B' : 'var(--gn)';
+  const prat = (showPratica && m.pratica_id) ? `<span style="color:var(--tx3);font-size:11px"> · ${m.pratica_id}</span>` : '';
+  const del = currentUser?.ruolo==='admin' ? `<button class="doc-del" onclick="eliminaMovimento(${m.id})">×</button>` : '';
+  return `<tr style="border-bottom:1px solid var(--bd)">
+    <td style="padding:8px 6px;white-space:nowrap;color:var(--tx3)">${m.data||''}</td>
+    <td style="padding:8px 6px">${m.descrizione||m.categoria||'—'}<span style="color:var(--tx3);font-size:11px"> · ${m.categoria||''}${m.metodo?' · '+m.metodo:''}</span>${prat}</td>
+    <td style="padding:8px 6px;text-align:right;font-weight:700;color:${col};white-space:nowrap">${seg} ${eur(m.importo)}</td>
+    <td style="padding:8px 6px;text-align:right;width:30px">${del}</td>
+  </tr>`;
+}
+
+function renderPrimaNota() {
+  const selMese = document.getElementById('pn-mese');
+  const selPrat = document.getElementById('pn-pratica');
+  if (!selMese) return;
+  const mesi = [...new Set(movimenti.map(m => (m.data||'').slice(0,7)).filter(Boolean))].sort().reverse();
+  const meseCorr = selMese.value, pratCorr = selPrat.value;
+  selMese.innerHTML = '<option value="">Tutti i mesi</option>' + mesi.map(m => `<option value="${m}">${meseLabel(m)}</option>`).join('');
+  selMese.value = meseCorr;
+  selPrat.innerHTML = '<option value="">Tutte le pratiche</option>' +
+    pratiche.map(p => `<option value="${p.id}">${p.id} — ${p.assistito?.cognome||''}</option>`).join('');
+  selPrat.value = pratCorr;
+
+  const fMese = selMese.value, fPrat = selPrat.value;
+  let rows = movimenti.slice();
+  if (fMese) rows = rows.filter(m => (m.data||'').slice(0,7) === fMese);
+  if (fPrat) rows = rows.filter(m => m.pratica_id === fPrat);
+
+  let entrate = 0, uscite = 0;
+  rows.forEach(m => { if (m.tipo === 'uscita') uscite += Number(m.importo)||0; else entrate += Number(m.importo)||0; });
+  const saldo = entrate - uscite;
+  document.getElementById('pn-entrate').textContent = eur(entrate);
+  document.getElementById('pn-uscite').textContent = eur(uscite);
+  const sEl = document.getElementById('pn-saldo');
+  sEl.textContent = eur(saldo);
+  sEl.style.color = saldo < 0 ? '#C0392B' : 'var(--gn)';
+  document.getElementById('pn-periodo').textContent = (fMese ? meseLabel(fMese) : 'tutti i periodi') + ' · ' + rows.length + ' movimenti';
+
+  const lista = document.getElementById('pn-lista');
+  lista.innerHTML = rows.length
+    ? '<table style="width:100%;border-collapse:collapse;font-size:13px">' + rows.map(m => rigaMovimento(m, true)).join('') + '</table>'
+    : '<div style="color:var(--tx3);padding:20px;text-align:center">Nessun movimento nel periodo</div>';
+}
+
+// blocco economico per la scheda pratica (HTML iniettato in renderDettaglio)
+function bloccoContiPratica(id) {
+  const mov = movimenti.filter(m => m.pratica_id === id);
+  let entrate = 0, uscite = 0;
+  mov.forEach(m => { if (m.tipo === 'uscita') uscite += Number(m.importo)||0; else entrate += Number(m.importo)||0; });
+  const saldo = entrate - uscite;
+  const add = currentUser?.ruolo==='admin' ? `<button class="btn btn-sm btn-p" onclick="apriMovimento('${id}')">+ Movimento</button>` : '';
+  const tabella = mov.length
+    ? '<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px">' + mov.map(m => rigaMovimento(m, false)).join('') + '</table>'
+    : '<div style="color:var(--tx3);padding:12px 0">Nessun movimento su questa pratica</div>';
+  return `<div class="card" style="margin-top:16px">
+    <div style="display:flex;justify-content:space-between;align-items:center"><div class="ct" style="margin:0">Conti pratica</div>${add}</div>
+    <div style="display:flex;gap:18px;margin-top:10px;flex-wrap:wrap">
+      <div><span style="color:var(--tx3);font-size:12px">Entrate</span><div style="font-weight:700;color:var(--gn)">${eur(entrate)}</div></div>
+      <div><span style="color:var(--tx3);font-size:12px">Uscite</span><div style="font-weight:700;color:#C0392B">${eur(uscite)}</div></div>
+      <div><span style="color:var(--tx3);font-size:12px">Saldo</span><div style="font-weight:700;color:${saldo<0?'#C0392B':'var(--gn)'}">${eur(saldo)}</div></div>
+    </div>${tabella}</div>`;
+}
 
 // ═══════════════════════════════════════════════════════
 // BOOT — sessione cookie valida → entra diretto, altrimenti login

@@ -95,6 +95,22 @@ CREATE TABLE IF NOT EXISTS sin_timeline (
   descrizione TEXT
 );
 
+-- Prima Nota: movimenti di cassa dello studio (entrate/uscite), collegabili a una pratica
+CREATE TABLE IF NOT EXISTS sin_movimenti (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  data        TEXT NOT NULL,
+  tipo        TEXT NOT NULL,          -- entrata | uscita
+  categoria   TEXT,
+  descrizione TEXT,
+  importo     REAL NOT NULL DEFAULT 0,
+  metodo      TEXT,                   -- contante | bonifico | assegno | pos
+  pratica_id  TEXT,                   -- opzionale: collega il movimento a una pratica
+  note        TEXT,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_mov_data    ON sin_movimenti(data);
+CREATE INDEX IF NOT EXISTS idx_mov_pratica ON sin_movimenti(pratica_id);
+
 CREATE INDEX IF NOT EXISTS idx_corr_pratica ON sin_corrispondenza(pratica_id);
 CREATE INDEX IF NOT EXISTS idx_doc_pratica  ON sin_documenti(pratica_id);
 CREATE INDEX IF NOT EXISTS idx_tl_pratica   ON sin_timeline(pratica_id);

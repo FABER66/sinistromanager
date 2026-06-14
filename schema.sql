@@ -95,6 +95,31 @@ CREATE TABLE IF NOT EXISTS sin_timeline (
   descrizione TEXT
 );
 
+-- Impostazioni studio (intestazione, P.IVA, regime fiscale...) — key/value
+CREATE TABLE IF NOT EXISTS sin_impostazioni (
+  chiave TEXT PRIMARY KEY,
+  valore TEXT
+);
+
+-- Registro fatture/parcelle emesse
+CREATE TABLE IF NOT EXISTS sin_fatture (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  numero      TEXT,
+  data        TEXT,
+  pratica_id  TEXT,
+  cliente     TEXT,
+  imponibile  REAL DEFAULT 0,
+  cassa       REAL DEFAULT 0,
+  iva         REAL DEFAULT 0,
+  ritenuta    REAL DEFAULT 0,
+  totale      REAL DEFAULT 0,
+  netto       REAL DEFAULT 0,
+  voci_json   TEXT,
+  dati_json   TEXT,
+  created_at  TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_fatt_pratica ON sin_fatture(pratica_id);
+
 -- Preventivo pratica: voci di spesa previste (onorario, perito, bolli...)
 CREATE TABLE IF NOT EXISTS sin_preventivo_voci (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

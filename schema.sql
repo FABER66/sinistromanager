@@ -56,10 +56,29 @@ CREATE TABLE IF NOT EXISTS sin_pratiche (
   created_at              TEXT DEFAULT (datetime('now')),
   updated_at              TEXT DEFAULT (datetime('now'))
 );
+CREATE INDEX IF NOT EXISTS idx_pratica_cognome ON sin_pratiche(ass_cognome);
+CREATE INDEX IF NOT EXISTS idx_pratica_targa   ON sin_pratiche(ass_targa);
+CREATE INDEX IF NOT EXISTS idx_pratica_fase    ON sin_pratiche(fase);
+
+CREATE TABLE IF NOT EXISTS sin_rubrica (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  tipo            TEXT NOT NULL,          -- segnalatore | avvocato | medico | compagnia | carrozzeria
+  nome            TEXT NOT NULL,
+  specializzazione TEXT,
+  struttura       TEXT,
+  telefono        TEXT,
+  email           TEXT,
+  note            TEXT,
+  provv_tipo      TEXT,                   -- fisso | percentuale
+  provv_valore    REAL,
+  created_at      TEXT DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_rub_tipo ON sin_rubrica(tipo);
+CREATE INDEX IF NOT EXISTS idx_rub_nome ON sin_rubrica(nome);
 
 CREATE TABLE IF NOT EXISTS sin_corrispondenza (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  pratica_id  TEXT NOT NULL,
+  pratica_id  TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   data        TEXT,
   direzione   TEXT,
   oggetto     TEXT,
@@ -67,10 +86,11 @@ CREATE TABLE IF NOT EXISTS sin_corrispondenza (
   protocollo  TEXT,
   note        TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_corr_pratica ON sin_corrispondenza(pratica_id);
 
 CREATE TABLE IF NOT EXISTS sin_documenti (
   id              TEXT PRIMARY KEY,
-  pratica_id      TEXT NOT NULL,
+  pratica_id      TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   tipo            TEXT,
   nome            TEXT,
   data            TEXT,
@@ -87,19 +107,22 @@ CREATE TABLE IF NOT EXISTS sin_documenti (
   med_prognosi    TEXT,
   med_num_referto TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_doc_pratica  ON sin_documenti(pratica_id);
+CREATE INDEX IF NOT EXISTS idx_doc_tipo     ON sin_documenti(tipo);
 
 CREATE TABLE IF NOT EXISTS sin_timeline (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  pratica_id  TEXT NOT NULL,
+  pratica_id  TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   data        TEXT,
   titolo      TEXT,
   descrizione TEXT
 );
+CREATE INDEX IF NOT EXISTS idx_tl_pratica   ON sin_timeline(pratica_id);
 
 -- Aggiornamenti pratica: diario stato/avanzamento legale
 CREATE TABLE IF NOT EXISTS sin_aggiornamenti (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  pratica_id  TEXT NOT NULL,
+  pratica_id  TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   data        TEXT,
   testo       TEXT,
   created_at  TEXT DEFAULT (datetime('now'))
@@ -117,7 +140,7 @@ CREATE TABLE IF NOT EXISTS sin_fatture (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   numero      TEXT,
   data        TEXT,
-  pratica_id  TEXT,
+  pratica_id  TEXT REFERENCES sin_pratiche(id) ON DELETE SET NULL,
   cliente     TEXT,
   imponibile  REAL DEFAULT 0,
   cassa       REAL DEFAULT 0,
@@ -134,7 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_fatt_pratica ON sin_fatture(pratica_id);
 -- Preventivo pratica: voci di spesa previste (onorario, perito, bolli...)
 CREATE TABLE IF NOT EXISTS sin_preventivo_voci (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  pratica_id  TEXT NOT NULL,
+  pratica_id  TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   descrizione TEXT,
   importo     REAL DEFAULT 0,
   ordine      INTEGER DEFAULT 0
@@ -144,7 +167,7 @@ CREATE INDEX IF NOT EXISTS idx_prev_pratica ON sin_preventivo_voci(pratica_id);
 -- Interlocutori pratica: compagnie da contattare / a chi scrivere
 CREATE TABLE IF NOT EXISTS sin_interlocutori (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  pratica_id  TEXT NOT NULL,
+  pratica_id  TEXT NOT NULL REFERENCES sin_pratiche(id) ON DELETE CASCADE,
   compagnia   TEXT,
   referente   TEXT,
   contatto    TEXT,
@@ -163,13 +186,10 @@ CREATE TABLE IF NOT EXISTS sin_movimenti (
   descrizione TEXT,
   importo     REAL NOT NULL DEFAULT 0,
   metodo      TEXT,                   -- contante | bonifico | assegno | pos
-  pratica_id  TEXT,                   -- opzionale: collega il movimento a una pratica
+  pratica_id  TEXT REFERENCES sin_pratiche(id) ON DELETE SET NULL,                   -- opzionale: collega il movimento a una pratica
   note        TEXT,
   created_at  TEXT DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_mov_data    ON sin_movimenti(data);
 CREATE INDEX IF NOT EXISTS idx_mov_pratica ON sin_movimenti(pratica_id);
-
-CREATE INDEX IF NOT EXISTS idx_corr_pratica ON sin_corrispondenza(pratica_id);
-CREATE INDEX IF NOT EXISTS idx_doc_pratica  ON sin_documenti(pratica_id);
-CREATE INDEX IF NOT EXISTS idx_tl_pratica   ON sin_timeline(pratica_id);
+CREATE INDEX IF NOT EXISTS idx_mov_tipo    ON sin_movimenti(tipo);

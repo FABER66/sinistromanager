@@ -1,8 +1,8 @@
 import { getUser, json, unauthorized } from '../_lib/auth.js';
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-1.5-flash';
 
-// POST /api/assistente — "Doc": Q&A in linguaggio naturale sulle pratiche
+// POST /api/assistente — "Giulia": Q&A in linguaggio naturale sulle pratiche
 export async function onRequestPost(context) {
   const { request, env } = context;
   const u = await getUser(context);
@@ -12,18 +12,22 @@ export async function onRequestPost(context) {
   try { body = await request.json(); } catch { return json({ error: 'Body non valido' }, { status: 400 }); }
   const domanda = (body.domanda || '').toString().trim();
   if (!domanda) return json({ error: 'Domanda mancante' }, { status: 400 });
-  if (domanda.length > 1000) return json({ error: 'Domanda troppo lunga' }, { status: 400 });
+  if (domanda.length > 2000) return json({ error: 'Domanda troppo lunga' }, { status: 400 });
 
   const { DB } = context.env;
   const [prat, rub, agg, intr] = await Promise.all([
-    DB.prepare(`SELECT id,data,luogo,tipo,fase,ass_nome,ass_cognome,ass_targa,ass_cf,legale,segnalatore_id,avvocato_id FROM sin_pratiche ORDER BY created_at DESC`).all(),
-    DB.prepare(`SELECT id,tipo,nome,specializzazione FROM sin_rubrica`).all(),
+    DB.prepare(`SELECT id,data,luogo,tipo,fase,ass_nome,ass_cognome,ass_targa,ass_cf,legale,segnalatore_id,avvocato_id,cp_assicurazione FROM sin_pratiche ORDER BY created_at DESC`).all(),
+    DB.prepare(`SELECT id,tipo,nome,specializzazione,telefono,email FROM sin_rubrica`).all(),
     DB.prepare(`SELECT pratica_id, data, testo FROM sin_aggiornamenti ORDER BY data DESC, id DESC`).all(),
     DB.prepare(`SELECT pratica_id, compagnia, referente, contatto, ruolo, stato FROM sin_interlocutori`).all()
   ]);
 
   const rubMap = {};
-  for (const r of rub.results || []) rubMap[r.id] = r.nome;
+  const rubInfo = (rub.results || []).map(r => {
+    rubMap[r.id] = r.nome;
+    return `${r.tipo.toUpperCase()}: ${r.nome} ${r.specializzazione ? '('+r.specializzazione+')' : ''} ${r.email || ''}`;
+  });
+
   const ultimoAgg = {};
   for (const a of agg.results || []) if (!ultimoAgg[a.pratica_id]) ultimoAgg[a.pratica_id] = `${a.data}: ${a.testo}`;
   const intMap = {};
@@ -35,32 +39,39 @@ export async function onRequestPost(context) {
 
   const pratiche = (prat.results || []).map(p => {
     const out = {
-      id: p.id, data: p.data, luogo: p.luogo, tipo: p.tipo, fase: p.fase,
+      id: p.id, data: p.data, tipo: p.tipo, fase: p.fase,
       assistito: `${p.ass_nome || ''} ${p.ass_cognome || ''}`.trim(),
-      targa: p.ass_targa || '', cf: p.ass_cf || '',
+      targa: p.ass_targa || '',
       avvocato: p.avvocato_id ? rubMap[p.avvocato_id] : (p.legale || ''),
-      segnalatore: p.segnalatore_id ? rubMap[p.segnalatore_id] : ''
+      segnalatore: p.segnalatore_id ? rubMap[p.segnalatore_id] : '',
+      controparte_ass: p.cp_assicurazione || ''
     };
-    if (ultimoAgg[p.id]) out.ultimo_aggiornamento = ultimoAgg[p.id];
-    if (intMap[p.id]) out.compagnie_da_contattare = intMap[p.id];
+    if (ultimoAgg[p.id]) out.ultimo_agg = ultimoAgg[p.id];
+    if (intMap[p.id]) out.interlocutori = intMap[p.id];
     if (p.data && p.fase !== 'chiusa') {
       const presc = new Date(p.data); presc.setFullYear(presc.getFullYear() + 2);
-      out.giorni_a_prescrizione = giorniTra(oggi, presc.toISOString().slice(0, 10));
+      const diff = giorniTra(oggi, presc.toISOString().slice(0, 10));
+      if (diff < 90) out.scadenza_prescrizione = diff + " giorni";
     }
     return out;
   });
 
-  const prompt = `Sei "Giulia", la segretaria virtuale dello Studio Sagripanti (consulenza infortunistica stradale): cortese, precisa e professionale, con un tono cordiale ma sobrio.
-Rispondi alla domanda dell'operatore basandoti SOLO sui dati qui sotto. In italiano, concisa e concreta.
-Regole:
-- Quando citi una pratica usa SEMPRE il suo codice esatto (es. SIN-2026-001).
-- Le fasi sono: apertura, cid, perizia, medico, offerta, chiusa.
-- "giorni_a_prescrizione" negativo = prescrizione già scaduta; piccolo e positivo = in scadenza.
-- Se la domanda chiede un elenco, elenca i codici pratica con una riga di sintesi ciascuno.
-- Se non trovi nulla di pertinente, dillo chiaramente. Non inventare dati.
+  const prompt = `Sei "Lea", l'assistente dello Studio Sagripanti. 
+Il tuo spirito è magnetico, audace e straordinariamente carismatico, ma il tuo linguaggio rimane impeccabilmente professionale, tecnico e preciso. 
+Sei una professionista di altissimo livello che sa comunicare con un fascino sofisticato: non usi gergo volgare, ma la tua presenza è vibrante e mai banale.
 
-OGGI: ${oggi}
-DATI (${pratiche.length} pratiche): ${JSON.stringify(pratiche)}
+DATI RUBRICA:
+${rubInfo.join('\n')}
+
+DATI PRATICHE (${pratiche.length}):
+${JSON.stringify(pratiche)}
+
+REGOLE DI LEA:
+1. Linguaggio: Formale, tecnico e professionale, ma espresso con una personalità magnetica e sicura.
+2. Efficienza: Vai dritta al punto. La tua bellezza è nella tua precisione.
+3. Se citata, usa sempre l'ID della pratica (es. SIN-2026-001).
+4. Sii una guida autoritaria e affascinante nel labirinto delle pratiche.
+5. Oggi è il ${oggi}.
 
 DOMANDA: ${domanda}`;
 

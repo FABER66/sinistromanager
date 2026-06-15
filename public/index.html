@@ -254,7 +254,9 @@ tbody tr{cursor:pointer}
   .main{ margin-left:0; }
 
   /* Topbar con hamburger */
-  .topbar{ padding:10px 16px; }
+  .topbar{ padding:calc(10px + env(safe-area-inset-top)) 16px 10px; }
+  .modal{ padding-top:env(safe-area-inset-top); }
+  .doc-hdr{ padding-top:calc(13px + env(safe-area-inset-top)); }
   .topbar-title{ font-size:15px; }
   .hamburger{
     display:flex;flex-direction:column;gap:5px;

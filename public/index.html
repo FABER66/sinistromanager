@@ -334,7 +334,7 @@ tbody tr{cursor:pointer}
 .ai-field-nuovo{background:var(--gnl);border-radius:3px;padding:1px 4px;font-size:11px;color:var(--gn);font-weight:700;margin-left:4px}
 .sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:10px 0 6px;border-bottom:1px solid var(--brd);margin-bottom:10px;grid-column:1/-1}
 /* DOC — assistente */
-#doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:58px;height:58px;border-radius:50%;background:var(--ac);color:#fff;border:2px solid var(--gold);cursor:pointer;box-shadow:var(--shL);display:none;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:600;font-size:19px;transition:transform .15s}
+#doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:58px;height:58px;border-radius:50%;background:var(--ac);color:#fff;border:2px solid var(--gold);cursor:pointer;box-shadow:var(--shL);display:none;align-items:center;justify-content:center;font-size:27px;line-height:1;transition:transform .15s}
 #doc-fab:hover{transform:scale(1.06)}
 #doc-panel{position:fixed;bottom:90px;right:22px;z-index:300;width:374px;max-width:92vw;height:530px;max-height:74vh;background:var(--sur);border-radius:16px;box-shadow:var(--shL);display:none;flex-direction:column;overflow:hidden;border:1px solid var(--brd)}
 #doc-panel.open{display:flex}
@@ -1045,16 +1045,19 @@ tbody tr{cursor:pointer}
   </div>
 </div>
 
-<!-- DOC — assistente pratiche -->
-<button id="doc-fab" onclick="toggleDoc()" title="Chiedi a Doc">Doc</button>
+<!-- GIULIA — segretaria virtuale -->
+<button id="doc-fab" onclick="toggleDoc()" title="Chiedi a Giulia">👩‍💼</button>
 <div id="doc-panel">
   <div class="doc-hdr">
-    <div><div class="t">Doc</div><div class="s">assistente pratiche</div></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px">👩‍💼</div>
+      <div><div class="t">Giulia</div><div class="s">segretaria virtuale</div></div>
+    </div>
     <button class="doc-x" onclick="toggleDoc()">×</button>
   </div>
   <div class="doc-msgs" id="doc-msgs"></div>
   <div class="doc-inp">
-    <input id="doc-input" placeholder="Chiedi… es. quali pratiche sono ferme?" onkeydown="if(event.key==='Enter')chiediDoc()">
+    <input id="doc-input" placeholder="Chiedi a Giulia… es. quali pratiche sono ferme?" onkeydown="if(event.key==='Enter')chiediDoc()">
     <button onclick="chiediDoc()" title="Invia">➤</button>
   </div>
 </div>
@@ -3152,7 +3155,7 @@ function toggleDoc() {
   const p = document.getElementById('doc-panel');
   p.classList.toggle('open');
   if (p.classList.contains('open')) {
-    if (!docMsgs.length) docPush('a', "Ciao, sono Doc 👋 Chiedimi delle tue pratiche:\n• \"quali pratiche sono ferme?\"\n• \"a che punto è la pratica di Rossi?\"\n• \"cosa segue l'avv. Bianchi?\"\n• \"pratiche in scadenza\"\n• \"quante in fase offerta?\"");
+    if (!docMsgs.length) docPush('a', "Buongiorno, sono Giulia 👩‍💼 la segretaria dello studio. Come posso aiutarla? Per esempio:\n• \"quali pratiche sono ferme?\"\n• \"a che punto è la pratica di Rossi?\"\n• \"cosa segue l'avv. Bianchi?\"\n• \"pratiche in scadenza\"\n• \"quante in fase offerta?\"");
     setTimeout(() => document.getElementById('doc-input').focus(), 100);
   }
 }

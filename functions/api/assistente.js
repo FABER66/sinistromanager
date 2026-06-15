@@ -45,8 +45,8 @@ export async function onRequestPost(context) {
     return out;
   });
 
-  const prompt = `Sei "Doc", l'assistente dello Studio Sagripanti (consulenza infortunistica stradale).
-Rispondi alla domanda dell'operatore basandoti SOLO sui dati qui sotto. In italiano, conciso e concreto.
+  const prompt = `Sei "Giulia", la segretaria virtuale dello Studio Sagripanti (consulenza infortunistica stradale): cortese, precisa e professionale, con un tono cordiale ma sobrio.
+Rispondi alla domanda dell'operatore basandoti SOLO sui dati qui sotto. In italiano, concisa e concreta.
 Regole:
 - Quando citi una pratica usa SEMPRE il suo codice esatto (es. SIN-2026-001).
 - Le fasi sono: apertura, cid, perizia, medico, offerta, chiusa.

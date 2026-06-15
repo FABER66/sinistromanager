@@ -333,6 +333,24 @@ tbody tr{cursor:pointer}
 .ai-err{background:var(--rdl);border:1px solid var(--rdb);color:var(--rd)}
 .ai-field-nuovo{background:var(--gnl);border-radius:3px;padding:1px 4px;font-size:11px;color:var(--gn);font-weight:700;margin-left:4px}
 .sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:10px 0 6px;border-bottom:1px solid var(--brd);margin-bottom:10px;grid-column:1/-1}
+/* DOC — assistente */
+#doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:58px;height:58px;border-radius:50%;background:var(--ac);color:#fff;border:2px solid var(--gold);cursor:pointer;box-shadow:var(--shL);display:none;align-items:center;justify-content:center;font-family:'Playfair Display',serif;font-weight:600;font-size:19px;transition:transform .15s}
+#doc-fab:hover{transform:scale(1.06)}
+#doc-panel{position:fixed;bottom:90px;right:22px;z-index:300;width:374px;max-width:92vw;height:530px;max-height:74vh;background:var(--sur);border-radius:16px;box-shadow:var(--shL);display:none;flex-direction:column;overflow:hidden;border:1px solid var(--brd)}
+#doc-panel.open{display:flex}
+.doc-hdr{padding:13px 16px;background:linear-gradient(185deg,#214268,var(--ac));color:#fff;display:flex;align-items:center;justify-content:space-between}
+.doc-hdr .t{font-family:'Playfair Display',serif;font-weight:600;font-size:16px}
+.doc-hdr .s{font-size:11px;color:var(--gold)}
+.doc-x{background:none;border:none;color:rgba(255,255,255,.8);font-size:20px;cursor:pointer;line-height:1}
+.doc-msgs{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.doc-msg{max-width:86%;padding:9px 12px;border-radius:13px;font-size:13px;line-height:1.5;white-space:pre-wrap;word-wrap:break-word}
+.doc-msg.u{align-self:flex-end;background:var(--ac);color:#fff;border-bottom-right-radius:3px}
+.doc-msg.a{align-self:flex-start;background:var(--sur);border:1px solid var(--brd);border-bottom-left-radius:3px}
+.doc-msg.a a{color:var(--ac);font-weight:700;cursor:pointer;text-decoration:underline}
+.doc-inp{display:flex;gap:8px;padding:12px;border-top:1px solid var(--brd)}
+.doc-inp input{flex:1;border:1px solid var(--brd);border-radius:20px;padding:9px 14px;font-family:inherit;font-size:13px;outline:none;color:var(--tx)}
+.doc-inp input:focus{border-color:var(--ac)}
+.doc-inp button{background:var(--ac);color:#fff;border:none;border-radius:50%;width:38px;height:38px;cursor:pointer;flex-shrink:0;font-size:15px}
 </style>
 </head>
 <body>
@@ -1027,6 +1045,20 @@ tbody tr{cursor:pointer}
   </div>
 </div>
 
+<!-- DOC — assistente pratiche -->
+<button id="doc-fab" onclick="toggleDoc()" title="Chiedi a Doc">Doc</button>
+<div id="doc-panel">
+  <div class="doc-hdr">
+    <div><div class="t">Doc</div><div class="s">assistente pratiche</div></div>
+    <button class="doc-x" onclick="toggleDoc()">×</button>
+  </div>
+  <div class="doc-msgs" id="doc-msgs"></div>
+  <div class="doc-inp">
+    <input id="doc-input" placeholder="Chiedi… es. quali pratiche sono ferme?" onkeydown="if(event.key==='Enter')chiediDoc()">
+    <button onclick="chiediDoc()" title="Invia">➤</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // COLLABORATORI (mappa email→profilo per visualizzazione nomi).
@@ -1218,6 +1250,8 @@ async function doLogout() {
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
+  const fab = document.getElementById('doc-fab'); if (fab) fab.style.display = 'none';
+  document.getElementById('doc-panel').classList.remove('open'); docMsgs = [];
   document.getElementById('l-pwd').value = '';
   document.querySelectorAll('.adm').forEach(el => el.style.display = 'none');
 }
@@ -1233,6 +1267,7 @@ function initApp() {
   // Usa profilo Firebase se disponibile, altrimenti demo locale
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+  const fab = document.getElementById('doc-fab'); if (fab) fab.style.display = 'flex';
   const lbtn = document.getElementById('l-btn');
   if (lbtn) { lbtn.disabled = false; lbtn.textContent = 'Accedi'; }
 
@@ -3107,6 +3142,49 @@ function toggleMedico(mid, on) {
   p.medici = (p.medici || []).map(Number);
   if (on) { if (!p.medici.includes(mid)) p.medici.push(mid); } else { p.medici = p.medici.filter(x => x !== mid); }
   aggiornaPraticaFirebase(p.id, { medici: p.medici }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════════════════
+// DOC — assistente pratiche (Gemini)
+// ═══════════════════════════════════════════════════════
+let docMsgs = [];
+function toggleDoc() {
+  const p = document.getElementById('doc-panel');
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) {
+    if (!docMsgs.length) docPush('a', "Ciao, sono Doc 👋 Chiedimi delle tue pratiche:\n• \"quali pratiche sono ferme?\"\n• \"a che punto è la pratica di Rossi?\"\n• \"cosa segue l'avv. Bianchi?\"\n• \"pratiche in scadenza\"\n• \"quante in fase offerta?\"");
+    setTimeout(() => document.getElementById('doc-input').focus(), 100);
+  }
+}
+function docPush(tipo, testo) { docMsgs.push({ tipo, testo }); renderDoc(); }
+function linkifyPratiche(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/(SIN-[A-Z0-9]+-[0-9]+)/g, '<a onclick="apriDettaglioDaDoc(\'$1\')">$1</a>');
+}
+function renderDoc() {
+  const el = document.getElementById('doc-msgs');
+  el.innerHTML = docMsgs.map(m => `<div class="doc-msg ${m.tipo}">${m.tipo==='a' ? linkifyPratiche(m.testo) : m.testo.replace(/</g,'&lt;')}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+function apriDettaglioDaDoc(id) {
+  const p = pratiche.find(x => x.id === id);
+  if (p) { document.getElementById('doc-panel').classList.remove('open'); apriDettaglio(id); }
+  else toast('Pratica ' + id + ' non trovata');
+}
+async function chiediDoc() {
+  const inp = document.getElementById('doc-input');
+  const q = (inp.value || '').trim();
+  if (!q) return;
+  inp.value = '';
+  docPush('u', q);
+  docPush('a', '…');
+  try {
+    const r = await api('assistente', { method: 'POST', body: { domanda: q } });
+    docMsgs.pop();
+    docPush('a', r.risposta || 'Nessuna risposta.');
+  } catch(e) {
+    docMsgs.pop();
+    docPush('a', '⚠ ' + e.message);
+  }
 }
 
 // ═══════════════════════════════════════════════════════

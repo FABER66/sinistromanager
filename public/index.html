@@ -334,7 +334,7 @@ tbody tr{cursor:pointer}
 .ai-field-nuovo{background:var(--gnl);border-radius:3px;padding:1px 4px;font-size:11px;color:var(--gn);font-weight:700;margin-left:4px}
 .sep{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--tx3);padding:10px 0 6px;border-bottom:1px solid var(--brd);margin-bottom:10px;grid-column:1/-1}
 /* DOC — assistente */
-#doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:58px;height:58px;border-radius:50%;background:var(--ac);color:#fff;border:2px solid var(--gold);cursor:pointer;box-shadow:var(--shL);display:none;align-items:center;justify-content:center;font-size:27px;line-height:1;transition:transform .15s}
+#doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:60px;height:60px;border-radius:50%;background:url('/giulia.png') center/cover no-repeat, var(--ac);border:2px solid var(--gold);cursor:pointer;box-shadow:var(--shL);display:none;font-size:0;transition:transform .15s}
 #doc-fab:hover{transform:scale(1.06)}
 #doc-panel{position:fixed;bottom:90px;right:22px;z-index:300;width:374px;max-width:92vw;height:530px;max-height:74vh;background:var(--sur);border-radius:16px;box-shadow:var(--shL);display:none;flex-direction:column;overflow:hidden;border:1px solid var(--brd)}
 #doc-panel.open{display:flex}
@@ -1046,11 +1046,11 @@ tbody tr{cursor:pointer}
 </div>
 
 <!-- GIULIA — segretaria virtuale -->
-<button id="doc-fab" onclick="toggleDoc()" title="Chiedi a Giulia">👩‍💼</button>
+<button id="doc-fab" onclick="toggleDoc()" title="Chiedi a Giulia"></button>
 <div id="doc-panel">
   <div class="doc-hdr">
     <div style="display:flex;align-items:center;gap:10px">
-      <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.15);border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px">👩‍💼</div>
+      <img src="/giulia.png" alt="Giulia" style="width:36px;height:36px;border-radius:50%;border:1px solid var(--gold);object-fit:cover">
       <div><div class="t">Giulia</div><div class="s">segretaria virtuale</div></div>
     </div>
     <button class="doc-x" onclick="toggleDoc()">×</button>

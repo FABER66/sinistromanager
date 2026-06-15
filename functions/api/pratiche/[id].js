@@ -15,6 +15,7 @@ export async function onRequestDelete(context) {
     DB.prepare('DELETE FROM sin_preventivo_voci WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_aggiornamenti WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_pratica_medici WHERE pratica_id=?').bind(id),
+    DB.prepare('DELETE FROM sin_interlocutori WHERE pratica_id=?').bind(id),
     DB.prepare('DELETE FROM sin_pratiche WHERE id=?').bind(id)
   ]);
 
@@ -104,6 +105,14 @@ export async function onRequestPatch(context) {
     await DB.prepare('DELETE FROM sin_pratica_medici WHERE pratica_id=?').bind(id).run();
     if (dati.medici.length) await DB.batch(dati.medici.map(mid =>
       DB.prepare('INSERT INTO sin_pratica_medici (pratica_id, medico_id) VALUES (?,?)').bind(id, mid)));
+  }
+
+  // Interlocutori / compagnie da contattare
+  if (dati.interlocutori) {
+    await DB.prepare('DELETE FROM sin_interlocutori WHERE pratica_id=?').bind(id).run();
+    if (dati.interlocutori.length) await DB.batch(dati.interlocutori.map(it =>
+      DB.prepare('INSERT INTO sin_interlocutori (pratica_id,compagnia,referente,contatto,ruolo,stato,note) VALUES (?,?,?,?,?,?,?)')
+        .bind(id, it.compagnia || null, it.referente || null, it.contatto || null, it.ruolo || null, it.stato || 'da_scrivere', it.note || null)));
   }
 
   // Aggiornamenti legale

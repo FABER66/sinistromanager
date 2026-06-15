@@ -746,6 +746,7 @@ tbody tr{cursor:pointer}
           </div>
         </div>
         <div id="det-gestione"></div>
+        <div id="det-interlocutori"></div>
         <div id="det-aggiornamenti"></div>
         <div id="det-preventivo"></div>
         <div id="det-conti"></div>
@@ -777,6 +778,7 @@ tbody tr{cursor:pointer}
               <option value="rmn">RMN / Risonanza magnetica</option>
               <option value="eco">Ecografia</option>
               <option value="visita">Visita specialistica</option>
+              <option value="analisi">Analisi / Esami di laboratorio</option>
               <option value="referto">Referto medico generico</option>
               <option value="ml">Relazione medico legale</option>
             </optgroup>
@@ -1615,6 +1617,8 @@ function renderDettaglio() {
   document.getElementById('det-info').textContent   = fmtData(p.data) + ' · ' + p.luogo;
   const gEl = document.getElementById('det-gestione');
   if (gEl) gEl.innerHTML = bloccoGestione(p);
+  const iEl = document.getElementById('det-interlocutori');
+  if (iEl) iEl.innerHTML = bloccoInterlocutori(p);
   const aggEl = document.getElementById('det-aggiornamenti');
   if (aggEl) aggEl.innerHTML = bloccoAggiornamenti(p);
   const prevEl = document.getElementById('det-preventivo');
@@ -3145,6 +3149,75 @@ function toggleMedico(mid, on) {
   p.medici = (p.medici || []).map(Number);
   if (on) { if (!p.medici.includes(mid)) p.medici.push(mid); } else { p.medici = p.medici.filter(x => x !== mid); }
   aggiornaPraticaFirebase(p.id, { medici: p.medici }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════════════════
+// COMPAGNIE & CONTATTI — con chi parlare / a chi scrivere
+// ═══════════════════════════════════════════════════════
+const STATI_INT = {
+  da_scrivere: { label:'Da scrivere', col:'#E67E22' },
+  scritto:     { label:'Scritto',     col:'#1B3A5C' },
+  attesa:      { label:'In attesa',   col:'#C47D1A' },
+  chiuso:      { label:'Chiuso',      col:'#1A4A2E' }
+};
+
+function bloccoInterlocutori(p) {
+  const list = p.interlocutori || [];
+  const usate = [...new Set(pratiche.flatMap(x => (x.interlocutori||[]).map(i => i.compagnia)).filter(Boolean))].sort();
+  const dl = usate.map(c => `<option value="${c.replace(/"/g,'&quot;')}">`).join('');
+  const righe = list.length ? list.map((it,i) => {
+    const st = STATI_INT[it.stato] || STATI_INT.da_scrivere;
+    const mail = (it.contatto && it.contatto.includes('@')) ? ` <a href="mailto:${esc(it.contatto)}" title="Scrivi email" style="text-decoration:none">✉️</a>` : '';
+    return `<div style="display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--brd)">
+      <div><div style="font-weight:700">${esc(it.compagnia||'—')}${it.ruolo?` <span style="color:var(--tx3);font-size:11px">· ${esc(it.ruolo)}</span>`:''}</div>
+        <div style="font-size:12px;color:var(--tx2)">${[esc(it.referente),esc(it.contatto)].filter(Boolean).join(' · ')||'—'}${mail}</div>
+        ${it.note?`<div style="font-size:11px;color:var(--tx3)">${esc(it.note)}</div>`:''}</div>
+      <div style="text-align:right;white-space:nowrap;display:flex;align-items:center;gap:6px">
+        <span class="badge" style="background:${st.col}22;color:${st.col};cursor:pointer" onclick="ciclaStatoInterlocutore(${i})" title="Clicca per cambiare stato">${st.label}</span>
+        <button class="doc-del" onclick="eliminaInterlocutore(${i})">×</button></div>
+    </div>`;
+  }).join('') : '<div style="color:var(--tx3);padding:12px 0">Nessuna compagnia/contatto. Aggiungi con chi parlare per questa pratica e a chi scrivere.</div>';
+  return `<div class="card" style="margin-top:16px">
+    <div class="ct">Compagnie &amp; contatti — a chi scrivere</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <input class="fi" id="int-comp" list="int-comp-list" placeholder="Compagnia (es. Generali)" style="flex:1;min-width:130px"><datalist id="int-comp-list">${dl}</datalist>
+      <input class="fi" id="int-ref" placeholder="Referente" style="flex:1;min-width:100px">
+      <input class="fi" id="int-cont" placeholder="email / PEC / tel" style="flex:1;min-width:140px">
+      <select class="fsel" id="int-ruolo" style="max-width:160px"><option value="">Ruolo…</option><option>Ufficio sinistri</option><option>Liquidatore</option><option>Agenzia</option><option>Legale controparte</option><option>Perito</option><option>Altro</option></select>
+      <select class="fsel" id="int-stato" style="max-width:140px"><option value="da_scrivere">Da scrivere</option><option value="scritto">Scritto</option><option value="attesa">In attesa</option><option value="chiuso">Chiuso</option></select>
+      <input class="fi" id="int-note" placeholder="Note" style="flex:1;min-width:100px">
+      <button class="btn btn-p btn-sm" onclick="aggiungiInterlocutore()">+ Aggiungi</button>
+    </div>
+    ${righe}
+  </div>`;
+}
+
+function aggiungiInterlocutore() {
+  const p = praticaCorrente; if (!p) return;
+  const comp = valId('int-comp');
+  if (!comp) { toast('Inserisci la compagnia'); return; }
+  p.interlocutori = p.interlocutori || [];
+  p.interlocutori.push({
+    compagnia: comp, referente: valId('int-ref'), contatto: valId('int-cont'),
+    ruolo: document.getElementById('int-ruolo').value, stato: document.getElementById('int-stato').value, note: valId('int-note')
+  });
+  aggiornaPraticaFirebase(p.id, { interlocutori: p.interlocutori }).catch(()=>{});
+  renderDettaglio();
+  toast('Contatto aggiunto');
+}
+function eliminaInterlocutore(i) {
+  const p = praticaCorrente; if (!p) return;
+  (p.interlocutori || []).splice(i, 1);
+  aggiornaPraticaFirebase(p.id, { interlocutori: p.interlocutori }).catch(()=>{});
+  renderDettaglio();
+}
+function ciclaStatoInterlocutore(i) {
+  const p = praticaCorrente; if (!p) return;
+  const ord = ['da_scrivere','scritto','attesa','chiuso'];
+  const it = p.interlocutori[i];
+  it.stato = ord[(ord.indexOf(it.stato || 'da_scrivere') + 1) % ord.length];
+  aggiornaPraticaFirebase(p.id, { interlocutori: p.interlocutori }).catch(()=>{});
+  renderDettaglio();
 }
 
 // ═══════════════════════════════════════════════════════

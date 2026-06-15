@@ -15,16 +15,20 @@ export async function onRequestPost(context) {
   if (domanda.length > 1000) return json({ error: 'Domanda troppo lunga' }, { status: 400 });
 
   const { DB } = context.env;
-  const [prat, rub, agg] = await Promise.all([
+  const [prat, rub, agg, intr] = await Promise.all([
     DB.prepare(`SELECT id,data,luogo,tipo,fase,ass_nome,ass_cognome,ass_targa,ass_cf,legale,segnalatore_id,avvocato_id FROM sin_pratiche ORDER BY created_at DESC`).all(),
     DB.prepare(`SELECT id,tipo,nome,specializzazione FROM sin_rubrica`).all(),
-    DB.prepare(`SELECT pratica_id, data, testo FROM sin_aggiornamenti ORDER BY data DESC, id DESC`).all()
+    DB.prepare(`SELECT pratica_id, data, testo FROM sin_aggiornamenti ORDER BY data DESC, id DESC`).all(),
+    DB.prepare(`SELECT pratica_id, compagnia, referente, contatto, ruolo, stato FROM sin_interlocutori`).all()
   ]);
 
   const rubMap = {};
   for (const r of rub.results || []) rubMap[r.id] = r.nome;
   const ultimoAgg = {};
   for (const a of agg.results || []) if (!ultimoAgg[a.pratica_id]) ultimoAgg[a.pratica_id] = `${a.data}: ${a.testo}`;
+  const intMap = {};
+  for (const it of intr.results || []) (intMap[it.pratica_id] ||= []).push(
+    `${it.compagnia||''}${it.referente?' ('+it.referente+')':''}${it.contatto?' '+it.contatto:''}${it.ruolo?' ['+it.ruolo+']':''} → ${it.stato||'da_scrivere'}`);
 
   const oggi = new Date().toISOString().slice(0, 10);
   const giorniTra = (d1, d2) => Math.round((new Date(d2) - new Date(d1)) / 86400000);
@@ -38,6 +42,7 @@ export async function onRequestPost(context) {
       segnalatore: p.segnalatore_id ? rubMap[p.segnalatore_id] : ''
     };
     if (ultimoAgg[p.id]) out.ultimo_aggiornamento = ultimoAgg[p.id];
+    if (intMap[p.id]) out.compagnie_da_contattare = intMap[p.id];
     if (p.data && p.fase !== 'chiusa') {
       const presc = new Date(p.data); presc.setFullYear(presc.getFullYear() + 2);
       out.giorni_a_prescrizione = giorniTra(oggi, presc.toISOString().slice(0, 10));

@@ -28,7 +28,11 @@ export function aggRowToApp(r) {
   return { id: r.id, data: r.data, testo: r.testo };
 }
 
-export function praticaRowToApp(p, corr, doc, tl, prev, agg, medici) {
+export function intRowToApp(r) {
+  return { compagnia: r.compagnia, referente: r.referente, contatto: r.contatto, ruolo: r.ruolo, stato: r.stato || 'da_scrivere', note: r.note };
+}
+
+export function praticaRowToApp(p, corr, doc, tl, prev, agg, medici, interlocutori) {
   return {
     id: p.id, data: p.data, ora: p.ora, luogo: p.luogo,
     tipo: p.tipo, forze: p.forze, fase: p.fase, note: p.note,
@@ -62,7 +66,8 @@ export function praticaRowToApp(p, corr, doc, tl, prev, agg, medici) {
     documenti: doc || [],
     timeline: tl || [],
     preventivo: prev || [],
-    aggiornamenti: agg || []
+    aggiornamenti: agg || [],
+    interlocutori: interlocutori || []
   };
 }
 

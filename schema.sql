@@ -141,6 +141,19 @@ CREATE TABLE IF NOT EXISTS sin_preventivo_voci (
 );
 CREATE INDEX IF NOT EXISTS idx_prev_pratica ON sin_preventivo_voci(pratica_id);
 
+-- Interlocutori pratica: compagnie da contattare / a chi scrivere
+CREATE TABLE IF NOT EXISTS sin_interlocutori (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  pratica_id  TEXT NOT NULL,
+  compagnia   TEXT,
+  referente   TEXT,
+  contatto    TEXT,
+  ruolo       TEXT,
+  stato       TEXT DEFAULT 'da_scrivere',
+  note        TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_int_pratica ON sin_interlocutori(pratica_id);
+
 -- Prima Nota: movimenti di cassa dello studio (entrate/uscite), collegabili a una pratica
 CREATE TABLE IF NOT EXISTS sin_movimenti (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,

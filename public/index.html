@@ -363,6 +363,12 @@ tbody tr{cursor:pointer}
 #doc-fab{position:fixed;bottom:22px;right:22px;z-index:300;width:64px;height:64px;border-radius:50%;background:url('/giulia.png') center/cover no-repeat, var(--ac);border:2px solid var(--gold);cursor:pointer;box-shadow:0 8px 32px rgba(176,141,87,0.3);display:none;font-size:0;transition:transform .2s cubic-bezier(.34,1.56,.64,1)}
 #doc-fab:hover{transform:scale(1.1) rotate(3deg)}
 #doc-panel{position:fixed;bottom:96px;right:22px;z-index:300;width:374px;max-width:92vw;height:530px;max-height:74vh;background:var(--sur);border-radius:20px;box-shadow:var(--shL);display:none;flex-direction:column;overflow:hidden;border:1px solid rgba(176,141,87,0.2)}
+/* Mobile: Lea vive nella bottom nav (niente tondo flottante che copre il Menu) */
+@media(max-width:768px){
+  #doc-fab{ display:none !important; }
+  #doc-panel{ left:8px; right:8px; bottom:74px; width:auto; max-width:none; height:64vh; }
+  .bn-leaimg{ width:25px; height:25px; border-radius:50%; object-fit:cover; border:1.5px solid var(--gold); display:block }
+}
 #doc-panel.open{display:flex;animation:docOpen .3s ease-out}
 @keyframes docOpen { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
 .doc-hdr{padding:16px 20px;background:linear-gradient(135deg, var(--acd) 0%, var(--ac) 100%);color:#fff;display:flex;align-items:center;justify-content:space-between;position:relative}
@@ -413,11 +419,11 @@ tbody tr{cursor:pointer}
     <button class="bn-item bn-add" data-sec="nuova" onclick="goTo('nuova')">
       <span class="bn-ic"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg></span><span>Nuova</span>
     </button>
-    <button class="bn-item" data-sec="primanota" onclick="goTo('primanota')">
-      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="12" height="12" rx="1.5"/><path d="M2 6h12M6 6v8"/></svg><span>Cassa</span>
-    </button>
     <button class="bn-item" onclick="toggleSidebar()">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M2 4h12M2 8h12M2 12h12"/></svg><span>Menu</span>
+    </button>
+    <button class="bn-item bn-lea" onclick="toggleDoc()">
+      <img src="/giulia.png" alt="Lea" class="bn-leaimg"><span>Lea</span>
     </button>
   </nav>
 
